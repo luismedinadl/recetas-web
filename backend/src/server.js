@@ -4,8 +4,11 @@ require("dotenv").config();
 
 const pool = require("./database/connection");
 const recetasRoutes = require("./routes/recetasRoutes");
+const usuariosRoutes = require("./routes/usuariosRoutes");
 
 const app = express();
+
+
 
 app.use(cors());
 app.use(express.json());
@@ -31,6 +34,7 @@ app.get("/api/test-db", async (req, res) => {
 });
 
 app.use("/api/recetas", recetasRoutes);
+app.use("/api/usuarios", usuariosRoutes);
 
 const PORT = process.env.PORT || 3000;
 
