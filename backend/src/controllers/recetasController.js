@@ -29,6 +29,32 @@ const obtenerRecetas = async (req, res) => {
     }
 };
 
+// Obtener una receta por ID
+const obtenerRecetaPorId = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const resultado = await pool.query(
+            "SELECT * FROM recetas WHERE id_receta = $1",
+            [id]
+        );
+
+        if (resultado.rows.length === 0) {
+            return res.status(404).json({
+                mensaje: "Receta no encontrada"
+            });
+        }
+
+        res.json(resultado.rows[0]);
+
+    } catch (error) {
+        res.status(500).json({
+            mensaje: "Error al obtener la receta",
+            error: error.message
+        });
+    }
+};
+
 // Crear una nueva receta
 const crearReceta = async (req, res) => {
     try {
@@ -77,7 +103,93 @@ const crearReceta = async (req, res) => {
     }
 };
 
+// Actualizar una receta
+const actualizarReceta = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const {
+            titulo,
+            descripcion,
+            ingredientes,
+            preparacion,
+            tiempo_preparacion,
+            id_categoria
+        } = req.body;
+
+        const resultado = await pool.query(
+            `UPDATE recetas 
+             SET titulo = $1,
+                 descripcion = $2,
+                 ingredientes = $3,
+                 preparacion = $4,
+                 tiempo_preparacion = $5,
+                 id_categoria = $6
+             WHERE id_receta = $7
+             RETURNING *`,
+            [
+                titulo,
+                descripcion,
+                ingredientes,
+                preparacion,
+                tiempo_preparacion,
+                id_categoria,
+                id
+            ]
+        );
+
+        if (resultado.rows.length === 0) {
+            return res.status(404).json({
+                mensaje: "Receta no encontrada"
+            });
+        }
+
+        res.json({
+            mensaje: "Receta actualizada correctamente",
+            receta: resultado.rows[0]
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            mensaje: "Error al actualizar receta",
+            error: error.message
+        });
+    }
+};
+
+// Eliminar una receta
+const eliminarReceta = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const resultado = await pool.query(
+            "DELETE FROM recetas WHERE id_receta = $1 RETURNING *",
+            [id]
+        );
+
+        if (resultado.rows.length === 0) {
+            return res.status(404).json({
+                mensaje: "Receta no encontrada"
+            });
+        }
+
+        res.json({
+            mensaje: "Receta eliminada correctamente",
+            receta: resultado.rows[0]
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            mensaje: "Error al eliminar receta",
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     obtenerRecetas,
-    crearReceta
+    obtenerRecetaPorId,
+    crearReceta,
+    actualizarReceta,
+    eliminarReceta
 };
