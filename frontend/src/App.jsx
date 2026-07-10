@@ -4,6 +4,7 @@ import axios from "axios";
 function App() {
   const [recetas, setRecetas] = useState([]);
   const [usuario, setUsuario] = useState(null);
+  const [recetaEditando, setRecetaEditando] = useState(null);
 
   const [login, setLogin] = useState({
     correo: "",
@@ -32,6 +33,26 @@ function App() {
     } catch (error) {
       console.error("Error al obtener recetas:", error);
     }
+  };
+
+  const obtenerCategoriaId = (receta) => {
+    if (receta.id_categoria) {
+      return receta.id_categoria;
+    }
+
+    if (receta.categoria === "Comida mexicana") {
+      return 1;
+    }
+
+    if (receta.categoria === "Postres") {
+      return 2;
+    }
+
+    if (receta.categoria === "Bebidas") {
+      return 3;
+    }
+
+    return 1;
   };
 
   const manejarCambioLogin = (e) => {
@@ -104,6 +125,16 @@ function App() {
     localStorage.removeItem("token");
     localStorage.removeItem("usuario");
     setUsuario(null);
+    setRecetaEditando(null);
+
+    setFormulario({
+      titulo: "",
+      descripcion: "",
+      ingredientes: "",
+      preparacion: "",
+      tiempo_preparacion: "",
+      id_categoria: 1,
+    });
   };
 
   const guardarReceta = async (e) => {
@@ -115,11 +146,23 @@ function App() {
     }
 
     try {
-      await axios.post("http://localhost:3000/api/recetas", {
-        ...formulario,
-        id_usuario: usuario.id_usuario,
-        id_categoria: Number(formulario.id_categoria),
-      });
+      if (recetaEditando) {
+        await axios.put(`http://localhost:3000/api/recetas/${recetaEditando}`, {
+          ...formulario,
+          id_categoria: Number(formulario.id_categoria),
+        });
+
+        alert("Receta actualizada correctamente");
+        setRecetaEditando(null);
+      } else {
+        await axios.post("http://localhost:3000/api/recetas", {
+          ...formulario,
+          id_usuario: usuario.id_usuario,
+          id_categoria: Number(formulario.id_categoria),
+        });
+
+        alert("Receta guardada correctamente");
+      }
 
       setFormulario({
         titulo: "",
@@ -131,10 +174,58 @@ function App() {
       });
 
       obtenerRecetas();
-      alert("Receta guardada correctamente");
     } catch (error) {
       console.error("Error al guardar receta:", error);
       alert("Error al guardar receta");
+    }
+  };
+
+  const editarReceta = (receta) => {
+    setRecetaEditando(receta.id_receta);
+
+    setFormulario({
+      titulo: receta.titulo || "",
+      descripcion: receta.descripcion || "",
+      ingredientes: receta.ingredientes || "",
+      preparacion: receta.preparacion || "",
+      tiempo_preparacion: receta.tiempo_preparacion || "",
+      id_categoria: obtenerCategoriaId(receta),
+    });
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
+
+  const cancelarEdicion = () => {
+    setRecetaEditando(null);
+
+    setFormulario({
+      titulo: "",
+      descripcion: "",
+      ingredientes: "",
+      preparacion: "",
+      tiempo_preparacion: "",
+      id_categoria: 1,
+    });
+  };
+
+  const eliminarReceta = async (id) => {
+    const confirmar = window.confirm("¿Seguro que deseas eliminar esta receta?");
+
+    if (!confirmar) {
+      return;
+    }
+
+    try {
+      await axios.delete(`http://localhost:3000/api/recetas/${id}`);
+
+      alert("Receta eliminada correctamente");
+      obtenerRecetas();
+    } catch (error) {
+      console.error("Error al eliminar receta:", error);
+      alert("Error al eliminar receta");
     }
   };
 
@@ -156,11 +247,12 @@ function App() {
 
           {usuario ? (
             <div className="d-flex align-items-center">
-              <span className="text-white me-3">
-                Usuario: {usuario.nombre}
-              </span>
+              <span className="text-white me-3">Usuario: {usuario.nombre}</span>
 
-              <button className="btn btn-outline-light btn-sm" onClick={cerrarSesion}>
+              <button
+                className="btn btn-outline-light btn-sm"
+                onClick={cerrarSesion}
+              >
                 Cerrar sesión
               </button>
             </div>
@@ -181,7 +273,7 @@ function App() {
 
         {!usuario && (
           <div className="row mb-4">
-            <div className="col-md-6">
+            <div className="col-md-6 mb-3">
               <div className="card shadow-sm">
                 <div className="card-header bg-primary text-white">
                   Registrar usuario
@@ -233,7 +325,7 @@ function App() {
               </div>
             </div>
 
-            <div className="col-md-6">
+            <div className="col-md-6 mb-3">
               <div className="card shadow-sm">
                 <div className="card-header bg-success text-white">
                   Iniciar sesión
@@ -278,7 +370,7 @@ function App() {
         {usuario && (
           <div className="card shadow-sm mb-4">
             <div className="card-header bg-dark text-white">
-              Agregar nueva receta
+              {recetaEditando ? "Editar receta" : "Agregar nueva receta"}
             </div>
 
             <div className="card-body">
@@ -353,9 +445,19 @@ function App() {
                   </select>
                 </div>
 
-                <button type="submit" className="btn btn-dark">
-                  Guardar receta
+                <button type="submit" className="btn btn-dark me-2">
+                  {recetaEditando ? "Actualizar receta" : "Guardar receta"}
                 </button>
+
+                {recetaEditando && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={cancelarEdicion}
+                  >
+                    Cancelar
+                  </button>
+                )}
               </form>
             </div>
           </div>
@@ -403,6 +505,24 @@ function App() {
                       <strong>Usuario:</strong>{" "}
                       {receta.usuario || "Usuario desconocido"}
                     </p>
+
+                    {usuario && (
+                      <div className="d-flex gap-2 mt-3">
+                        <button
+                          className="btn btn-warning btn-sm"
+                          onClick={() => editarReceta(receta)}
+                        >
+                          Editar
+                        </button>
+
+                        <button
+                          className="btn btn-danger btn-sm"
+                          onClick={() => eliminarReceta(receta.id_receta)}
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
