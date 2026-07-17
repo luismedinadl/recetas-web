@@ -5,6 +5,7 @@ require("dotenv").config();
 const pool = require("./database/connection");
 const recetasRoutes = require("./routes/recetasRoutes");
 const usuariosRoutes = require("./routes/usuariosRoutes");
+const favoritosRoutes = require("./routes/favoritosRoutes");
 
 const app = express();
 
@@ -35,6 +36,7 @@ app.get("/api/test-db", async (req, res) => {
 
 app.use("/api/recetas", recetasRoutes);
 app.use("/api/usuarios", usuariosRoutes);
+app.use("/api/favoritos", favoritosRoutes);
 
 const PORT = process.env.PORT || 3000;
 

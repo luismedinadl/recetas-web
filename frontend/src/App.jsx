@@ -5,6 +5,8 @@ function App() {
   const [recetas, setRecetas] = useState([]);
   const [usuario, setUsuario] = useState(null);
   const [recetaEditando, setRecetaEditando] = useState(null);
+  const [favoritos, setFavoritos] = useState([]);
+const [mostrarFavoritos, setMostrarFavoritos] = useState(false);
 
   const [login, setLogin] = useState({
     correo: "",
@@ -108,6 +110,7 @@ function App() {
       localStorage.setItem("usuario", JSON.stringify(respuesta.data.usuario));
 
       setUsuario(respuesta.data.usuario);
+      obtenerIdsFavoritos();
 
       setLogin({
         correo: "",
@@ -126,6 +129,8 @@ function App() {
     localStorage.removeItem("usuario");
     setUsuario(null);
     setRecetaEditando(null);
+    setFavoritos([]);
+setMostrarFavoritos(false);
 
     setFormulario({
       titulo: "",
@@ -234,6 +239,44 @@ function App() {
   }
 };
 
+const alternarFavorito = async (id_receta) => {
+  if (!usuario) {
+    alert("Debes iniciar sesión para guardar favoritos");
+    return;
+  }
+
+  const token = localStorage.getItem("token");
+
+  try {
+    if (favoritos.includes(Number(id_receta))) {
+      await axios.delete(`http://localhost:3000/api/favoritos/${id_receta}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      alert("Receta eliminada de favoritos");
+    } else {
+      await axios.post(
+        `http://localhost:3000/api/favoritos/${id_receta}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      alert("Receta agregada a favoritos");
+    }
+
+    obtenerIdsFavoritos();
+  } catch (error) {
+    console.error("Error con favoritos:", error);
+    alert(error.response?.data?.mensaje || "Error al actualizar favoritos");
+  }
+};
+
   useEffect(() => {
     obtenerRecetas();
 
@@ -241,8 +284,35 @@ function App() {
 
     if (usuarioGuardado) {
       setUsuario(JSON.parse(usuarioGuardado));
+      obtenerIdsFavoritos();
     }
   }, []);
+
+  const obtenerIdsFavoritos = async () => {
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    setFavoritos([]);
+    return;
+  }
+
+  try {
+    const respuesta = await axios.get("http://localhost:3000/api/favoritos/ids", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const ids = respuesta.data.map((favorito) => Number(favorito.id_receta));
+    setFavoritos(ids);
+  } catch (error) {
+    console.error("Error al obtener favoritos:", error);
+  }
+};
+
+const recetasMostradas = mostrarFavoritos
+  ? recetas.filter((receta) => favoritos.includes(Number(receta.id_receta)))
+  : recetas;
 
   return (
     <div>
@@ -469,16 +539,24 @@ function App() {
         )}
 
         <h2 className="mb-3">Recetas registradas</h2>
+        {usuario && (
+  <button
+    className="btn btn-outline-primary mb-3"
+    onClick={() => setMostrarFavoritos(!mostrarFavoritos)}
+  >
+    {mostrarFavoritos ? "Ver todas las recetas" : "Ver mis favoritas"}
+  </button>
+)}
 
         <div className="row">
-          {recetas.length === 0 ? (
+          {recetasMostradas.length === 0 ? (
             <div className="col-12">
               <div className="alert alert-warning text-center">
                 No hay recetas registradas.
               </div>
             </div>
           ) : (
-            recetas.map((receta) => (
+            recetasMostradas.map((receta) => (
               <div className="col-md-4 mb-4" key={receta.id_receta}>
                 <div className="card h-100 shadow-sm">
                   <div className="card-body">
@@ -511,7 +589,25 @@ function App() {
                       {receta.usuario || "Usuario desconocido"}
                     </p>
 
+                    {/* Botón de favoritos: aparece para cualquier usuario con sesión */}
+        {usuario && (
+          <button
+            className={
+              favoritos.includes(Number(receta.id_receta))
+                ? "btn btn-outline-danger btn-sm mt-2 me-2"
+                : "btn btn-outline-primary btn-sm mt-2 me-2"
+            }
+            onClick={() => alternarFavorito(receta.id_receta)}
+          >
+            {favoritos.includes(Number(receta.id_receta))
+              ? "Quitar de favoritos"
+              : "Guardar en favoritos"}
+          </button>
+        )}
+
                     {usuario && Number(usuario.id_usuario) === Number(receta.id_usuario) && (
+  
+  
   <div className="d-flex gap-2 mt-3">
     <button
       className="btn btn-warning btn-sm"
