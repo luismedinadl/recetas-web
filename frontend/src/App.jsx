@@ -7,6 +7,8 @@ function App() {
   const [recetaEditando, setRecetaEditando] = useState(null);
   const [favoritos, setFavoritos] = useState([]);
 const [mostrarFavoritos, setMostrarFavoritos] = useState(false);
+const [busqueda, setBusqueda] = useState("");
+const [filtroCategoria, setFiltroCategoria] = useState("todas");
 
   const [login, setLogin] = useState({
     correo: "",
@@ -310,9 +312,24 @@ const alternarFavorito = async (id_receta) => {
   }
 };
 
-const recetasMostradas = mostrarFavoritos
+const recetasBase = mostrarFavoritos
   ? recetas.filter((receta) => favoritos.includes(Number(receta.id_receta)))
   : recetas;
+
+const recetasMostradas = recetasBase.filter((receta) => {
+  const texto = busqueda.toLowerCase();
+
+  const coincideBusqueda =
+    receta.titulo?.toLowerCase().includes(texto) ||
+    receta.descripcion?.toLowerCase().includes(texto) ||
+    receta.ingredientes?.toLowerCase().includes(texto);
+
+  const coincideCategoria =
+    filtroCategoria === "todas" ||
+    Number(receta.id_categoria) === Number(filtroCategoria);
+
+  return coincideBusqueda && coincideCategoria;
+});
 
   return (
     <div>
@@ -539,6 +556,30 @@ const recetasMostradas = mostrarFavoritos
         )}
 
         <h2 className="mb-3">Recetas registradas</h2>
+        <div className="row mb-3">
+  <div className="col-md-8 mb-2">
+    <input
+      type="text"
+      className="form-control"
+      placeholder="Buscar receta por nombre, descripción o ingredientes..."
+      value={busqueda}
+      onChange={(e) => setBusqueda(e.target.value)}
+    />
+  </div>
+
+  <div className="col-md-4 mb-2">
+    <select
+      className="form-select"
+      value={filtroCategoria}
+      onChange={(e) => setFiltroCategoria(e.target.value)}
+    >
+      <option value="todas">Todas las categorías</option>
+      <option value="1">Comida mexicana</option>
+      <option value="2">Postres</option>
+      <option value="3">Bebidas</option>
+    </select>
+  </div>
+</div>
         {usuario && (
   <button
     className="btn btn-outline-primary mb-3"
