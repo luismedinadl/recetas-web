@@ -12,6 +12,8 @@ const obtenerRecetas = async (req, res) => {
                 recetas.preparacion,
                 recetas.tiempo_preparacion,
                 recetas.fecha_publicacion,
+                recetas.id_usuario,
+                recetas.id_categoria,
                 usuarios.nombre AS usuario,
                 categorias.nombre_categoria AS categoria
             FROM recetas
@@ -64,9 +66,10 @@ const crearReceta = async (req, res) => {
             ingredientes,
             preparacion,
             tiempo_preparacion,
-            id_usuario,
             id_categoria
         } = req.body;
+
+        const id_usuario = req.usuario.id_usuario;
 
         if (!titulo || !ingredientes || !preparacion) {
             return res.status(400).json({
@@ -103,10 +106,11 @@ const crearReceta = async (req, res) => {
     }
 };
 
-// Actualizar una receta
+// Actualizar una receta solo si pertenece al usuario
 const actualizarReceta = async (req, res) => {
     try {
         const { id } = req.params;
+        const id_usuario = req.usuario.id_usuario;
 
         const {
             titulo,
@@ -125,7 +129,7 @@ const actualizarReceta = async (req, res) => {
                  preparacion = $4,
                  tiempo_preparacion = $5,
                  id_categoria = $6
-             WHERE id_receta = $7
+             WHERE id_receta = $7 AND id_usuario = $8
              RETURNING *`,
             [
                 titulo,
@@ -134,13 +138,14 @@ const actualizarReceta = async (req, res) => {
                 preparacion,
                 tiempo_preparacion,
                 id_categoria,
-                id
+                id,
+                id_usuario
             ]
         );
 
         if (resultado.rows.length === 0) {
-            return res.status(404).json({
-                mensaje: "Receta no encontrada"
+            return res.status(403).json({
+                mensaje: "No tienes permiso para editar esta receta"
             });
         }
 
@@ -157,19 +162,20 @@ const actualizarReceta = async (req, res) => {
     }
 };
 
-// Eliminar una receta
+// Eliminar una receta solo si pertenece al usuario
 const eliminarReceta = async (req, res) => {
     try {
         const { id } = req.params;
+        const id_usuario = req.usuario.id_usuario;
 
         const resultado = await pool.query(
-            "DELETE FROM recetas WHERE id_receta = $1 RETURNING *",
-            [id]
+            "DELETE FROM recetas WHERE id_receta = $1 AND id_usuario = $2 RETURNING *",
+            [id, id_usuario]
         );
 
         if (resultado.rows.length === 0) {
-            return res.status(404).json({
-                mensaje: "Receta no encontrada"
+            return res.status(403).json({
+                mensaje: "No tienes permiso para eliminar esta receta"
             });
         }
 

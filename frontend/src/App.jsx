@@ -138,65 +138,64 @@ function App() {
   };
 
   const guardarReceta = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!usuario) {
-      alert("Debes iniciar sesión para publicar una receta");
-      return;
-    }
+  if (!usuario) {
+    alert("Debes iniciar sesión para publicar una receta");
+    return;
+  }
 
-    try {
-      if (recetaEditando) {
-        await axios.put(`http://localhost:3000/api/recetas/${recetaEditando}`, {
+  const token = localStorage.getItem("token");
+
+  try {
+    if (recetaEditando) {
+      await axios.put(
+        `http://localhost:3000/api/recetas/${recetaEditando}`,
+        {
           ...formulario,
           id_categoria: Number(formulario.id_categoria),
-        });
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
-        alert("Receta actualizada correctamente");
-        setRecetaEditando(null);
-      } else {
-        await axios.post("http://localhost:3000/api/recetas", {
+      alert("Receta actualizada correctamente");
+      setRecetaEditando(null);
+    } else {
+      await axios.post(
+        "http://localhost:3000/api/recetas",
+        {
           ...formulario,
-          id_usuario: usuario.id_usuario,
           id_categoria: Number(formulario.id_categoria),
-        });
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
-        alert("Receta guardada correctamente");
-      }
-
-      setFormulario({
-        titulo: "",
-        descripcion: "",
-        ingredientes: "",
-        preparacion: "",
-        tiempo_preparacion: "",
-        id_categoria: 1,
-      });
-
-      obtenerRecetas();
-    } catch (error) {
-      console.error("Error al guardar receta:", error);
-      alert("Error al guardar receta");
+      alert("Receta guardada correctamente");
     }
-  };
-
-  const editarReceta = (receta) => {
-    setRecetaEditando(receta.id_receta);
 
     setFormulario({
-      titulo: receta.titulo || "",
-      descripcion: receta.descripcion || "",
-      ingredientes: receta.ingredientes || "",
-      preparacion: receta.preparacion || "",
-      tiempo_preparacion: receta.tiempo_preparacion || "",
-      id_categoria: obtenerCategoriaId(receta),
+      titulo: "",
+      descripcion: "",
+      ingredientes: "",
+      preparacion: "",
+      tiempo_preparacion: "",
+      id_categoria: 1,
     });
 
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
-  };
+    obtenerRecetas();
+  } catch (error) {
+    console.error("Error al guardar receta:", error);
+    alert(error.response?.data?.mensaje || "Error al guardar receta");
+  }
+};
 
   const cancelarEdicion = () => {
     setRecetaEditando(null);
@@ -212,22 +211,28 @@ function App() {
   };
 
   const eliminarReceta = async (id) => {
-    const confirmar = window.confirm("¿Seguro que deseas eliminar esta receta?");
+  const confirmar = window.confirm("¿Seguro que deseas eliminar esta receta?");
 
-    if (!confirmar) {
-      return;
-    }
+  if (!confirmar) {
+    return;
+  }
 
-    try {
-      await axios.delete(`http://localhost:3000/api/recetas/${id}`);
+  const token = localStorage.getItem("token");
 
-      alert("Receta eliminada correctamente");
-      obtenerRecetas();
-    } catch (error) {
-      console.error("Error al eliminar receta:", error);
-      alert("Error al eliminar receta");
-    }
-  };
+  try {
+    await axios.delete(`http://localhost:3000/api/recetas/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    alert("Receta eliminada correctamente");
+    obtenerRecetas();
+  } catch (error) {
+    console.error("Error al eliminar receta:", error);
+    alert(error.response?.data?.mensaje || "Error al eliminar receta");
+  }
+};
 
   useEffect(() => {
     obtenerRecetas();
@@ -506,23 +511,23 @@ function App() {
                       {receta.usuario || "Usuario desconocido"}
                     </p>
 
-                    {usuario && (
-                      <div className="d-flex gap-2 mt-3">
-                        <button
-                          className="btn btn-warning btn-sm"
-                          onClick={() => editarReceta(receta)}
-                        >
-                          Editar
-                        </button>
+                    {usuario && Number(usuario.id_usuario) === Number(receta.id_usuario) && (
+  <div className="d-flex gap-2 mt-3">
+    <button
+      className="btn btn-warning btn-sm"
+      onClick={() => editarReceta(receta)}
+    >
+      Editar
+    </button>
 
-                        <button
-                          className="btn btn-danger btn-sm"
-                          onClick={() => eliminarReceta(receta.id_receta)}
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-                    )}
+    <button
+      className="btn btn-danger btn-sm"
+      onClick={() => eliminarReceta(receta.id_receta)}
+    >
+      Eliminar
+    </button>
+  </div>
+)}
                   </div>
                 </div>
               </div>
