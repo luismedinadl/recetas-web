@@ -13,6 +13,8 @@ function App() {
   const [mostrarMisRecetas, setMostrarMisRecetas] = useState(false);
   const [busquedaExterna, setBusquedaExterna] = useState("");
   const [recetasExternas, setRecetasExternas] = useState([]);
+  const [mostrarAuth, setMostrarAuth] = useState(false);
+  const [mostrarFormularioReceta, setMostrarFormularioReceta] = useState(false);
 
   const [login, setLogin] = useState({
     correo: "",
@@ -116,6 +118,7 @@ function App() {
       localStorage.setItem("usuario", JSON.stringify(respuesta.data.usuario));
 
       setUsuario(respuesta.data.usuario);
+      setMostrarAuth(false);
       obtenerIdsFavoritos();
 
       setLogin({
@@ -138,6 +141,7 @@ function App() {
     setFavoritos([]);
     setMostrarFavoritos(false);
     setMostrarMisRecetas(false);
+    setMostrarAuth(false);
 
     setFormulario({
       titulo: "",
@@ -202,6 +206,7 @@ function App() {
         id_categoria: 1,
       });
 
+      setMostrarFormularioReceta(false);
       obtenerRecetas();
     } catch (error) {
       console.error("Error al guardar receta:", error);
@@ -211,6 +216,7 @@ function App() {
 
   const cancelarEdicion = () => {
     setRecetaEditando(null);
+    setMostrarFormularioReceta(false);
 
     setFormulario({
       titulo: "",
@@ -219,6 +225,19 @@ function App() {
       preparacion: "",
       tiempo_preparacion: "",
       id_categoria: 1,
+    });
+  };
+
+  const editarReceta = (receta) => {
+    setRecetaEditando(receta.id_receta);
+    setMostrarFormularioReceta(true);
+    setFormulario({
+      titulo: receta.titulo || "",
+      descripcion: receta.descripcion || "",
+      ingredientes: receta.ingredientes || "",
+      preparacion: receta.preparacion || "",
+      tiempo_preparacion: receta.tiempo_preparacion || "",
+      id_categoria: receta.id_categoria || 1,
     });
   };
 
@@ -391,25 +410,31 @@ function App() {
               </button>
             </div>
           ) : (
-            <span className="text-white-50">Sin sesión iniciada</span>
+            <button
+              className="btn btn-outline-light btn-sm"
+              onClick={() => setMostrarAuth(!mostrarAuth)}
+            >
+              Iniciar sesión | Registrarse
+            </button>
           )}
         </div>
       </nav>
 
       <div className="container mt-4">
         <div className="hero-section text-center">
-  <h1>Recetas de Cocina</h1>
+          <h1>Recetas de Cocina</h1>
 
-  <p>
-    Comparte, consulta y guarda recetas de cocina con tu perfil de usuario.
-  </p>
+          <p>
+            Comparte, consulta y guarda recetas de cocina con tu perfil de
+            usuario.
+          </p>
 
-  {usuario && (
-    <span className="badge bg-success">
-      Sesión iniciada como {usuario.nombre}
-    </span>
-  )}
-</div>
+          {usuario && (
+            <span className="badge bg-success">
+              Sesión iniciada como {usuario.nombre}
+            </span>
+          )}
+        </div>
 
         {usuario && (
           <div className="card custom-card mb-4">
@@ -457,8 +482,8 @@ function App() {
             </div>
           </div>
         )}
-  
-        {!usuario && (
+
+        {!usuario && mostrarAuth && (
           <div className="row mb-4">
             <div className="col-md-6 mb-3">
               <div className="card shadow-sm">
@@ -554,7 +579,18 @@ function App() {
           </div>
         )}
 
-        {usuario && (
+        {usuario && !mostrarFormularioReceta && !recetaEditando && (
+          <div className="text-end mb-3">
+            <button
+              className="btn btn-main"
+              onClick={() => setMostrarFormularioReceta(true)}
+            >
+              + Agregar nueva receta
+            </button>
+          </div>
+        )}
+
+        {usuario && (mostrarFormularioReceta || recetaEditando) && (
           <div className="card custom-card mb-4">
             <div className="card-header bg-dark text-white">
               {recetaEditando ? "Editar receta" : "Agregar nueva receta"}
@@ -636,15 +672,13 @@ function App() {
                   {recetaEditando ? "Actualizar receta" : "Guardar receta"}
                 </button>
 
-                {recetaEditando && (
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={cancelarEdicion}
-                  >
-                    Cancelar
-                  </button>
-                )}
+                <button
+  type="button"
+  className="btn btn-secondary"
+  onClick={cancelarEdicion}
+>
+  Cancelar
+</button>
               </form>
             </div>
           </div>
@@ -741,14 +775,6 @@ function App() {
             </select>
           </div>
         </div>
-        {/* {usuario && (
-          <button
-            className="btn btn-outline-primary mb-3"
-            onClick={() => setMostrarFavoritos(!mostrarFavoritos)}
-          >
-            {mostrarFavoritos ? "Ver todas las recetas" : "Ver mis favoritas"}
-          </button>
-        )} */}
 
         <div className="row">
           {recetasMostradas.length === 0 ? (
@@ -765,8 +791,8 @@ function App() {
                     <h5 className="card-title">{receta.titulo}</h5>
 
                     <span className="recipe-category">
-  {receta.categoria || "Sin categoría"}
-</span>
+                      {receta.categoria || "Sin categoría"}
+                    </span>
 
                     <p>{receta.descripcion}</p>
 
