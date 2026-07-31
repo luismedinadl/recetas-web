@@ -9,6 +9,7 @@ function App() {
   const [mostrarFavoritos, setMostrarFavoritos] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const [filtroCategoria, setFiltroCategoria] = useState("todas");
+  const [mostrarMisRecetas, setMostrarMisRecetas] = useState(false);
 
   const [login, setLogin] = useState({
     correo: "",
@@ -133,6 +134,7 @@ function App() {
     setRecetaEditando(null);
     setFavoritos([]);
     setMostrarFavoritos(false);
+    setMostrarMisRecetas(false);
 
     setFormulario({
       titulo: "",
@@ -317,24 +319,32 @@ function App() {
     }
   };
 
-  const recetasBase = mostrarFavoritos
-    ? recetas.filter((receta) => favoritos.includes(Number(receta.id_receta)))
-    : recetas;
+  const recetasDelUsuario = usuario
+  ? recetas.filter(
+      (receta) => Number(receta.id_usuario) === Number(usuario.id_usuario)
+    )
+  : [];
 
-  const recetasMostradas = recetasBase.filter((receta) => {
-    const texto = busqueda.toLowerCase();
+const recetasBase = mostrarMisRecetas
+  ? recetasDelUsuario
+  : mostrarFavoritos
+  ? recetas.filter((receta) => favoritos.includes(Number(receta.id_receta)))
+  : recetas;
 
-    const coincideBusqueda =
-      receta.titulo?.toLowerCase().includes(texto) ||
-      receta.descripcion?.toLowerCase().includes(texto) ||
-      receta.ingredientes?.toLowerCase().includes(texto);
+const recetasMostradas = recetasBase.filter((receta) => {
+  const texto = busqueda.toLowerCase();
 
-    const coincideCategoria =
-      filtroCategoria === "todas" ||
-      Number(receta.id_categoria) === Number(filtroCategoria);
+  const coincideBusqueda =
+    receta.titulo?.toLowerCase().includes(texto) ||
+    receta.descripcion?.toLowerCase().includes(texto) ||
+    receta.ingredientes?.toLowerCase().includes(texto);
 
-    return coincideBusqueda && coincideCategoria;
-  });
+  const coincideCategoria =
+    filtroCategoria === "todas" ||
+    Number(receta.id_categoria) === Number(filtroCategoria);
+
+  return coincideBusqueda && coincideCategoria;
+});
 
   return (
     <div>
@@ -367,6 +377,49 @@ function App() {
         <p className="text-center text-muted">
           Consulta y registra recetas publicadas por los usuarios.
         </p>
+
+        {usuario && (
+  <div className="card shadow-sm mb-4">
+    <div className="card-header bg-secondary text-white">
+      Perfil de usuario
+    </div>
+
+    <div className="card-body">
+      <h5>{usuario.nombre}</h5>
+      <p>
+        <strong>Correo:</strong> {usuario.correo}
+      </p>
+
+      <p>
+        <strong>Recetas publicadas:</strong> {recetasDelUsuario.length}
+      </p>
+
+      <p>
+        <strong>Recetas favoritas:</strong> {favoritos.length}
+      </p>
+
+      <button
+        className="btn btn-outline-dark me-2"
+        onClick={() => {
+          setMostrarMisRecetas(!mostrarMisRecetas);
+          setMostrarFavoritos(false);
+        }}
+      >
+        {mostrarMisRecetas ? "Ver todas las recetas" : "Ver mis recetas"}
+      </button>
+
+      <button
+        className="btn btn-outline-primary"
+        onClick={() => {
+          setMostrarFavoritos(!mostrarFavoritos);
+          setMostrarMisRecetas(false);
+        }}
+      >
+        {mostrarFavoritos ? "Ver todas las recetas" : "Ver mis favoritas"}
+      </button>
+    </div>
+  </div>
+)}
 
         {!usuario && (
           <div className="row mb-4">
@@ -560,7 +613,13 @@ function App() {
           </div>
         )}
 
-        <h2 className="mb-3">Recetas registradas</h2>
+        <h2 className="mb-3">
+  {mostrarMisRecetas
+    ? "Mis recetas"
+    : mostrarFavoritos
+    ? "Mis recetas favoritas"
+    : "Recetas registradas"}
+</h2>
         <div className="row mb-3">
           <div className="col-md-8 mb-2">
             <input
@@ -585,14 +644,14 @@ function App() {
             </select>
           </div>
         </div>
-        {usuario && (
+        {/* {usuario && (
           <button
             className="btn btn-outline-primary mb-3"
             onClick={() => setMostrarFavoritos(!mostrarFavoritos)}
           >
             {mostrarFavoritos ? "Ver todas las recetas" : "Ver mis favoritas"}
           </button>
-        )}
+        )} */}
 
         <div className="row">
           {recetasMostradas.length === 0 ? (
