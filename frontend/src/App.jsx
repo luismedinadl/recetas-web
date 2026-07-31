@@ -6,9 +6,9 @@ function App() {
   const [usuario, setUsuario] = useState(null);
   const [recetaEditando, setRecetaEditando] = useState(null);
   const [favoritos, setFavoritos] = useState([]);
-const [mostrarFavoritos, setMostrarFavoritos] = useState(false);
-const [busqueda, setBusqueda] = useState("");
-const [filtroCategoria, setFiltroCategoria] = useState("todas");
+  const [mostrarFavoritos, setMostrarFavoritos] = useState(false);
+  const [busqueda, setBusqueda] = useState("");
+  const [filtroCategoria, setFiltroCategoria] = useState("todas");
 
   const [login, setLogin] = useState({
     correo: "",
@@ -105,7 +105,7 @@ const [filtroCategoria, setFiltroCategoria] = useState("todas");
     try {
       const respuesta = await axios.post(
         "http://localhost:3000/api/usuarios/login",
-        login
+        login,
       );
 
       localStorage.setItem("token", respuesta.data.token);
@@ -132,7 +132,7 @@ const [filtroCategoria, setFiltroCategoria] = useState("todas");
     setUsuario(null);
     setRecetaEditando(null);
     setFavoritos([]);
-setMostrarFavoritos(false);
+    setMostrarFavoritos(false);
 
     setFormulario({
       titulo: "",
@@ -145,64 +145,64 @@ setMostrarFavoritos(false);
   };
 
   const guardarReceta = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (!usuario) {
-    alert("Debes iniciar sesión para publicar una receta");
-    return;
-  }
-
-  const token = localStorage.getItem("token");
-
-  try {
-    if (recetaEditando) {
-      await axios.put(
-        `http://localhost:3000/api/recetas/${recetaEditando}`,
-        {
-          ...formulario,
-          id_categoria: Number(formulario.id_categoria),
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      alert("Receta actualizada correctamente");
-      setRecetaEditando(null);
-    } else {
-      await axios.post(
-        "http://localhost:3000/api/recetas",
-        {
-          ...formulario,
-          id_categoria: Number(formulario.id_categoria),
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      alert("Receta guardada correctamente");
+    if (!usuario) {
+      alert("Debes iniciar sesión para publicar una receta");
+      return;
     }
 
-    setFormulario({
-      titulo: "",
-      descripcion: "",
-      ingredientes: "",
-      preparacion: "",
-      tiempo_preparacion: "",
-      id_categoria: 1,
-    });
+    const token = localStorage.getItem("token");
 
-    obtenerRecetas();
-  } catch (error) {
-    console.error("Error al guardar receta:", error);
-    alert(error.response?.data?.mensaje || "Error al guardar receta");
-  }
-};
+    try {
+      if (recetaEditando) {
+        await axios.put(
+          `http://localhost:3000/api/recetas/${recetaEditando}`,
+          {
+            ...formulario,
+            id_categoria: Number(formulario.id_categoria),
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        alert("Receta actualizada correctamente");
+        setRecetaEditando(null);
+      } else {
+        await axios.post(
+          "http://localhost:3000/api/recetas",
+          {
+            ...formulario,
+            id_categoria: Number(formulario.id_categoria),
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        alert("Receta guardada correctamente");
+      }
+
+      setFormulario({
+        titulo: "",
+        descripcion: "",
+        ingredientes: "",
+        preparacion: "",
+        tiempo_preparacion: "",
+        id_categoria: 1,
+      });
+
+      obtenerRecetas();
+    } catch (error) {
+      console.error("Error al guardar receta:", error);
+      alert(error.response?.data?.mensaje || "Error al guardar receta");
+    }
+  };
 
   const cancelarEdicion = () => {
     setRecetaEditando(null);
@@ -218,66 +218,68 @@ setMostrarFavoritos(false);
   };
 
   const eliminarReceta = async (id) => {
-  const confirmar = window.confirm("¿Seguro que deseas eliminar esta receta?");
+    const confirmar = window.confirm(
+      "¿Seguro que deseas eliminar esta receta?",
+    );
 
-  if (!confirmar) {
-    return;
-  }
+    if (!confirmar) {
+      return;
+    }
 
-  const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
-  try {
-    await axios.delete(`http://localhost:3000/api/recetas/${id}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    alert("Receta eliminada correctamente");
-    obtenerRecetas();
-  } catch (error) {
-    console.error("Error al eliminar receta:", error);
-    alert(error.response?.data?.mensaje || "Error al eliminar receta");
-  }
-};
-
-const alternarFavorito = async (id_receta) => {
-  if (!usuario) {
-    alert("Debes iniciar sesión para guardar favoritos");
-    return;
-  }
-
-  const token = localStorage.getItem("token");
-
-  try {
-    if (favoritos.includes(Number(id_receta))) {
-      await axios.delete(`http://localhost:3000/api/favoritos/${id_receta}`, {
+    try {
+      await axios.delete(`http://localhost:3000/api/recetas/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      alert("Receta eliminada de favoritos");
-    } else {
-      await axios.post(
-        `http://localhost:3000/api/favoritos/${id_receta}`,
-        {},
-        {
+      alert("Receta eliminada correctamente");
+      obtenerRecetas();
+    } catch (error) {
+      console.error("Error al eliminar receta:", error);
+      alert(error.response?.data?.mensaje || "Error al eliminar receta");
+    }
+  };
+
+  const alternarFavorito = async (id_receta) => {
+    if (!usuario) {
+      alert("Debes iniciar sesión para guardar favoritos");
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+
+    try {
+      if (favoritos.includes(Number(id_receta))) {
+        await axios.delete(`http://localhost:3000/api/favoritos/${id_receta}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
-      );
+        });
 
-      alert("Receta agregada a favoritos");
+        alert("Receta eliminada de favoritos");
+      } else {
+        await axios.post(
+          `http://localhost:3000/api/favoritos/${id_receta}`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        alert("Receta agregada a favoritos");
+      }
+
+      obtenerIdsFavoritos();
+    } catch (error) {
+      console.error("Error con favoritos:", error);
+      alert(error.response?.data?.mensaje || "Error al actualizar favoritos");
     }
-
-    obtenerIdsFavoritos();
-  } catch (error) {
-    console.error("Error con favoritos:", error);
-    alert(error.response?.data?.mensaje || "Error al actualizar favoritos");
-  }
-};
+  };
 
   useEffect(() => {
     obtenerRecetas();
@@ -291,45 +293,48 @@ const alternarFavorito = async (id_receta) => {
   }, []);
 
   const obtenerIdsFavoritos = async () => {
-  const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
-  if (!token) {
-    setFavoritos([]);
-    return;
-  }
+    if (!token) {
+      setFavoritos([]);
+      return;
+    }
 
-  try {
-    const respuesta = await axios.get("http://localhost:3000/api/favoritos/ids", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    try {
+      const respuesta = await axios.get(
+        "http://localhost:3000/api/favoritos/ids",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
 
-    const ids = respuesta.data.map((favorito) => Number(favorito.id_receta));
-    setFavoritos(ids);
-  } catch (error) {
-    console.error("Error al obtener favoritos:", error);
-  }
-};
+      const ids = respuesta.data.map((favorito) => Number(favorito.id_receta));
+      setFavoritos(ids);
+    } catch (error) {
+      console.error("Error al obtener favoritos:", error);
+    }
+  };
 
-const recetasBase = mostrarFavoritos
-  ? recetas.filter((receta) => favoritos.includes(Number(receta.id_receta)))
-  : recetas;
+  const recetasBase = mostrarFavoritos
+    ? recetas.filter((receta) => favoritos.includes(Number(receta.id_receta)))
+    : recetas;
 
-const recetasMostradas = recetasBase.filter((receta) => {
-  const texto = busqueda.toLowerCase();
+  const recetasMostradas = recetasBase.filter((receta) => {
+    const texto = busqueda.toLowerCase();
 
-  const coincideBusqueda =
-    receta.titulo?.toLowerCase().includes(texto) ||
-    receta.descripcion?.toLowerCase().includes(texto) ||
-    receta.ingredientes?.toLowerCase().includes(texto);
+    const coincideBusqueda =
+      receta.titulo?.toLowerCase().includes(texto) ||
+      receta.descripcion?.toLowerCase().includes(texto) ||
+      receta.ingredientes?.toLowerCase().includes(texto);
 
-  const coincideCategoria =
-    filtroCategoria === "todas" ||
-    Number(receta.id_categoria) === Number(filtroCategoria);
+    const coincideCategoria =
+      filtroCategoria === "todas" ||
+      Number(receta.id_categoria) === Number(filtroCategoria);
 
-  return coincideBusqueda && coincideCategoria;
-});
+    return coincideBusqueda && coincideCategoria;
+  });
 
   return (
     <div>
@@ -557,37 +562,37 @@ const recetasMostradas = recetasBase.filter((receta) => {
 
         <h2 className="mb-3">Recetas registradas</h2>
         <div className="row mb-3">
-  <div className="col-md-8 mb-2">
-    <input
-      type="text"
-      className="form-control"
-      placeholder="Buscar receta por nombre, descripción o ingredientes..."
-      value={busqueda}
-      onChange={(e) => setBusqueda(e.target.value)}
-    />
-  </div>
+          <div className="col-md-8 mb-2">
+            <input
+              type="text"
+              className="form-control"
+              placeholder="Buscar receta por nombre, descripción o ingredientes..."
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+            />
+          </div>
 
-  <div className="col-md-4 mb-2">
-    <select
-      className="form-select"
-      value={filtroCategoria}
-      onChange={(e) => setFiltroCategoria(e.target.value)}
-    >
-      <option value="todas">Todas las categorías</option>
-      <option value="1">Comida mexicana</option>
-      <option value="2">Postres</option>
-      <option value="3">Bebidas</option>
-    </select>
-  </div>
-</div>
+          <div className="col-md-4 mb-2">
+            <select
+              className="form-select"
+              value={filtroCategoria}
+              onChange={(e) => setFiltroCategoria(e.target.value)}
+            >
+              <option value="todas">Todas las categorías</option>
+              <option value="1">Comida mexicana</option>
+              <option value="2">Postres</option>
+              <option value="3">Bebidas</option>
+            </select>
+          </div>
+        </div>
         {usuario && (
-  <button
-    className="btn btn-outline-primary mb-3"
-    onClick={() => setMostrarFavoritos(!mostrarFavoritos)}
-  >
-    {mostrarFavoritos ? "Ver todas las recetas" : "Ver mis favoritas"}
-  </button>
-)}
+          <button
+            className="btn btn-outline-primary mb-3"
+            onClick={() => setMostrarFavoritos(!mostrarFavoritos)}
+          >
+            {mostrarFavoritos ? "Ver todas las recetas" : "Ver mis favoritas"}
+          </button>
+        )}
 
         <div className="row">
           {recetasMostradas.length === 0 ? (
@@ -631,40 +636,40 @@ const recetasMostradas = recetasBase.filter((receta) => {
                     </p>
 
                     {/* Botón de favoritos: aparece para cualquier usuario con sesión */}
-        {usuario && (
-          <button
-            className={
-              favoritos.includes(Number(receta.id_receta))
-                ? "btn btn-outline-danger btn-sm mt-2 me-2"
-                : "btn btn-outline-primary btn-sm mt-2 me-2"
-            }
-            onClick={() => alternarFavorito(receta.id_receta)}
-          >
-            {favoritos.includes(Number(receta.id_receta))
-              ? "Quitar de favoritos"
-              : "Guardar en favoritos"}
-          </button>
-        )}
+                    {usuario && (
+                      <button
+                        className={
+                          favoritos.includes(Number(receta.id_receta))
+                            ? "btn btn-outline-danger btn-sm mt-2 me-2"
+                            : "btn btn-outline-primary btn-sm mt-2 me-2"
+                        }
+                        onClick={() => alternarFavorito(receta.id_receta)}
+                      >
+                        {favoritos.includes(Number(receta.id_receta))
+                          ? "Quitar de favoritos"
+                          : "Guardar en favoritos"}
+                      </button>
+                    )}
 
-                    {usuario && Number(usuario.id_usuario) === Number(receta.id_usuario) && (
-  
-  
-  <div className="d-flex gap-2 mt-3">
-    <button
-      className="btn btn-warning btn-sm"
-      onClick={() => editarReceta(receta)}
-    >
-      Editar
-    </button>
+                    {usuario &&
+                      Number(usuario.id_usuario) ===
+                        Number(receta.id_usuario) && (
+                        <div className="d-flex gap-2 mt-3">
+                          <button
+                            className="btn btn-warning btn-sm"
+                            onClick={() => editarReceta(receta)}
+                          >
+                            Editar
+                          </button>
 
-    <button
-      className="btn btn-danger btn-sm"
-      onClick={() => eliminarReceta(receta.id_receta)}
-    >
-      Eliminar
-    </button>
-  </div>
-)}
+                          <button
+                            className="btn btn-danger btn-sm"
+                            onClick={() => eliminarReceta(receta.id_receta)}
+                          >
+                            Eliminar
+                          </button>
+                        </div>
+                      )}
                   </div>
                 </div>
               </div>
