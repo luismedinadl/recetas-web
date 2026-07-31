@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import "./App.css";
 
 function App() {
   const [recetas, setRecetas] = useState([]);
@@ -10,6 +11,8 @@ function App() {
   const [busqueda, setBusqueda] = useState("");
   const [filtroCategoria, setFiltroCategoria] = useState("todas");
   const [mostrarMisRecetas, setMostrarMisRecetas] = useState(false);
+  const [busquedaExterna, setBusquedaExterna] = useState("");
+  const [recetasExternas, setRecetasExternas] = useState([]);
 
   const [login, setLogin] = useState({
     correo: "",
@@ -320,41 +323,65 @@ function App() {
   };
 
   const recetasDelUsuario = usuario
-  ? recetas.filter(
-      (receta) => Number(receta.id_usuario) === Number(usuario.id_usuario)
-    )
-  : [];
+    ? recetas.filter(
+        (receta) => Number(receta.id_usuario) === Number(usuario.id_usuario),
+      )
+    : [];
 
-const recetasBase = mostrarMisRecetas
-  ? recetasDelUsuario
-  : mostrarFavoritos
-  ? recetas.filter((receta) => favoritos.includes(Number(receta.id_receta)))
-  : recetas;
+  const recetasBase = mostrarMisRecetas
+    ? recetasDelUsuario
+    : mostrarFavoritos
+      ? recetas.filter((receta) => favoritos.includes(Number(receta.id_receta)))
+      : recetas;
 
-const recetasMostradas = recetasBase.filter((receta) => {
-  const texto = busqueda.toLowerCase();
+  const recetasMostradas = recetasBase.filter((receta) => {
+    const texto = busqueda.toLowerCase();
 
-  const coincideBusqueda =
-    receta.titulo?.toLowerCase().includes(texto) ||
-    receta.descripcion?.toLowerCase().includes(texto) ||
-    receta.ingredientes?.toLowerCase().includes(texto);
+    const coincideBusqueda =
+      receta.titulo?.toLowerCase().includes(texto) ||
+      receta.descripcion?.toLowerCase().includes(texto) ||
+      receta.ingredientes?.toLowerCase().includes(texto);
 
-  const coincideCategoria =
-    filtroCategoria === "todas" ||
-    Number(receta.id_categoria) === Number(filtroCategoria);
+    const coincideCategoria =
+      filtroCategoria === "todas" ||
+      Number(receta.id_categoria) === Number(filtroCategoria);
 
-  return coincideBusqueda && coincideCategoria;
-});
+    return coincideBusqueda && coincideCategoria;
+  });
+
+  const buscarRecetasExternas = async (e) => {
+    e.preventDefault();
+
+    if (!busquedaExterna.trim()) {
+      alert("Escribe el nombre de una receta para buscar");
+      return;
+    }
+
+    try {
+      const respuesta = await axios.get(
+        `http://localhost:3000/api/externas/buscar?nombre=${busquedaExterna}`,
+      );
+
+      setRecetasExternas(respuesta.data);
+
+      if (respuesta.data.length === 0) {
+        alert("No se encontraron recetas externas");
+      }
+    } catch (error) {
+      console.error("Error al buscar recetas externas:", error);
+      alert("Error al consultar la API externa");
+    }
+  };
 
   return (
     <div>
-      <nav className="navbar navbar-dark bg-dark">
+      <nav className="navbar navbar-dark app-navbar">
         <div className="container">
-          <span className="navbar-brand mb-0 h1">Recetas Web</span>
+          <span className="navbar-brand mb-0 h1 app-title">🍽️ Recetas Web</span>
 
           {usuario ? (
             <div className="d-flex align-items-center">
-              <span className="text-white me-3">Usuario: {usuario.nombre}</span>
+              <span className="text-white me-3">👤 {usuario.nombre}</span>
 
               <button
                 className="btn btn-outline-light btn-sm"
@@ -364,63 +391,73 @@ const recetasMostradas = recetasBase.filter((receta) => {
               </button>
             </div>
           ) : (
-            <span className="text-white">Sin sesión iniciada</span>
+            <span className="text-white-50">Sin sesión iniciada</span>
           )}
         </div>
       </nav>
 
       <div className="container mt-4">
-        <h1 className="text-center mb-3">
-          Aplicación Web de Recetas de Cocina
-        </h1>
+        <div className="hero-section text-center">
+  <h1>Recetas de Cocina</h1>
 
-        <p className="text-center text-muted">
-          Consulta y registra recetas publicadas por los usuarios.
-        </p>
+  <p>
+    Comparte, consulta y guarda recetas de cocina con tu perfil de usuario.
+  </p>
+
+  {usuario && (
+    <span className="badge bg-success">
+      Sesión iniciada como {usuario.nombre}
+    </span>
+  )}
+</div>
 
         {usuario && (
-  <div className="card shadow-sm mb-4">
-    <div className="card-header bg-secondary text-white">
-      Perfil de usuario
-    </div>
+          <div className="card custom-card mb-4">
+            <div className="card-header bg-secondary text-white">
+              Perfil de usuario
+            </div>
 
-    <div className="card-body">
-      <h5>{usuario.nombre}</h5>
-      <p>
-        <strong>Correo:</strong> {usuario.correo}
-      </p>
+            <div className="card-body">
+              <h5>{usuario.nombre}</h5>
+              <p>
+                <strong>Correo:</strong> {usuario.correo}
+              </p>
 
-      <p>
-        <strong>Recetas publicadas:</strong> {recetasDelUsuario.length}
-      </p>
+              <p>
+                <strong>Recetas publicadas:</strong> {recetasDelUsuario.length}
+              </p>
 
-      <p>
-        <strong>Recetas favoritas:</strong> {favoritos.length}
-      </p>
+              <p>
+                <strong>Recetas favoritas:</strong> {favoritos.length}
+              </p>
 
-      <button
-        className="btn btn-outline-dark me-2"
-        onClick={() => {
-          setMostrarMisRecetas(!mostrarMisRecetas);
-          setMostrarFavoritos(false);
-        }}
-      >
-        {mostrarMisRecetas ? "Ver todas las recetas" : "Ver mis recetas"}
-      </button>
+              <button
+                className="btn btn-soft me-2"
+                onClick={() => {
+                  setMostrarMisRecetas(!mostrarMisRecetas);
+                  setMostrarFavoritos(false);
+                }}
+              >
+                {mostrarMisRecetas
+                  ? "Ver todas las recetas"
+                  : "Ver mis recetas"}
+              </button>
 
-      <button
-        className="btn btn-outline-primary"
-        onClick={() => {
-          setMostrarFavoritos(!mostrarFavoritos);
-          setMostrarMisRecetas(false);
-        }}
-      >
-        {mostrarFavoritos ? "Ver todas las recetas" : "Ver mis favoritas"}
-      </button>
-    </div>
-  </div>
-)}
-
+              <button
+                className="btn btn-soft me-2"
+                onClick={() => {
+                  setMostrarFavoritos(!mostrarFavoritos);
+                  setMostrarMisRecetas(false);
+                }}
+              >
+                {mostrarFavoritos
+                  ? "Ver todas las recetas"
+                  : "Ver mis favoritas"}
+              </button>
+            </div>
+          </div>
+        )}
+  
         {!usuario && (
           <div className="row mb-4">
             <div className="col-md-6 mb-3">
@@ -518,7 +555,7 @@ const recetasMostradas = recetasBase.filter((receta) => {
         )}
 
         {usuario && (
-          <div className="card shadow-sm mb-4">
+          <div className="card custom-card mb-4">
             <div className="card-header bg-dark text-white">
               {recetaEditando ? "Editar receta" : "Agregar nueva receta"}
             </div>
@@ -595,7 +632,7 @@ const recetasMostradas = recetasBase.filter((receta) => {
                   </select>
                 </div>
 
-                <button type="submit" className="btn btn-dark me-2">
+                <button type="submit" className="btn btn-main me-2">
                   {recetaEditando ? "Actualizar receta" : "Guardar receta"}
                 </button>
 
@@ -613,13 +650,73 @@ const recetasMostradas = recetasBase.filter((receta) => {
           </div>
         )}
 
-        <h2 className="mb-3">
-  {mostrarMisRecetas
-    ? "Mis recetas"
-    : mostrarFavoritos
-    ? "Mis recetas favoritas"
-    : "Recetas registradas"}
-</h2>
+        <div className="card custom-card mb-4">
+          <div className="card-header bg-info text-white">
+            Buscar recetas externas
+          </div>
+
+          <div className="card-body">
+            <form onSubmit={buscarRecetasExternas} className="row">
+              <div className="col-md-9 mb-2">
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Ejemplo: chicken, pasta, cake"
+                  value={busquedaExterna}
+                  onChange={(e) => setBusquedaExterna(e.target.value)}
+                />
+              </div>
+
+              <div className="col-md-3 mb-2">
+                <button type="submit" className="btn btn-info text-white w-100">
+                  Buscar
+                </button>
+              </div>
+            </form>
+
+            {recetasExternas.length > 0 && (
+              <div className="row mt-4">
+                {recetasExternas.map((receta) => (
+                  <div className="col-md-4 mb-4" key={receta.id}>
+                    <div className="card h-100 recipe-card">
+                      <img
+                        src={receta.imagen}
+                        className="card-img-top"
+                        alt={receta.nombre}
+                      />
+
+                      <div className="card-body">
+                        <h5 className="card-title">{receta.nombre}</h5>
+
+                        <p>
+                          <strong>Categoría:</strong> {receta.categoria}
+                        </p>
+
+                        <p>
+                          <strong>Origen:</strong> {receta.area}
+                        </p>
+
+                        <p>
+                          <strong>Fuente:</strong> {receta.fuente}
+                        </p>
+
+                        <p>{receta.instrucciones.substring(0, 200)}...</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <h2 className="section-title">
+          {mostrarMisRecetas
+            ? "Mis recetas"
+            : mostrarFavoritos
+              ? "Mis recetas favoritas"
+              : "Recetas registradas"}
+        </h2>
         <div className="row mb-3">
           <div className="col-md-8 mb-2">
             <input
@@ -663,13 +760,13 @@ const recetasMostradas = recetasBase.filter((receta) => {
           ) : (
             recetasMostradas.map((receta) => (
               <div className="col-md-4 mb-4" key={receta.id_receta}>
-                <div className="card h-100 shadow-sm">
+                <div className="card h-100 recipe-card">
                   <div className="card-body">
                     <h5 className="card-title">{receta.titulo}</h5>
 
-                    <h6 className="card-subtitle mb-2 text-muted">
-                      {receta.categoria || "Sin categoría"}
-                    </h6>
+                    <span className="recipe-category">
+  {receta.categoria || "Sin categoría"}
+</span>
 
                     <p>{receta.descripcion}</p>
 

@@ -6,6 +6,7 @@ const pool = require("./database/connection");
 const recetasRoutes = require("./routes/recetasRoutes");
 const usuariosRoutes = require("./routes/usuariosRoutes");
 const favoritosRoutes = require("./routes/favoritosRoutes");
+const externasRoutes = require("./routes/externasRoutes");
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.get("/api/test-db", async (req, res) => {
 app.use("/api/recetas", recetasRoutes);
 app.use("/api/usuarios", usuariosRoutes);
 app.use("/api/favoritos", favoritosRoutes);
+app.use("/api/externas", externasRoutes);
 
 const PORT = process.env.PORT || 3000;
 
