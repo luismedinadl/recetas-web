@@ -11,6 +11,7 @@ const obtenerRecetas = async (req, res) => {
                 recetas.ingredientes,
                 recetas.preparacion,
                 recetas.tiempo_preparacion,
+                recetas.imagen,
                 recetas.fecha_publicacion,
                 recetas.id_usuario,
                 recetas.id_categoria,
@@ -70,6 +71,7 @@ const crearReceta = async (req, res) => {
         } = req.body;
 
         const id_usuario = req.usuario.id_usuario;
+        const imagen = req.file ? `/uploads/${req.file.filename}` : null;
 
         if (!titulo || !ingredientes || !preparacion) {
             return res.status(400).json({
@@ -79,8 +81,8 @@ const crearReceta = async (req, res) => {
 
         const resultado = await pool.query(
             `INSERT INTO recetas 
-            (titulo, descripcion, ingredientes, preparacion, tiempo_preparacion, id_usuario, id_categoria)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            (titulo, descripcion, ingredientes, preparacion, tiempo_preparacion, id_usuario, id_categoria, imagen)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING *`,
             [
                 titulo,
@@ -89,7 +91,8 @@ const crearReceta = async (req, res) => {
                 preparacion,
                 tiempo_preparacion,
                 id_usuario,
-                id_categoria
+                id_categoria,
+                imagen
             ]
         );
 
@@ -120,6 +123,7 @@ const actualizarReceta = async (req, res) => {
             tiempo_preparacion,
             id_categoria
         } = req.body;
+        const imagen = req.file ? `/uploads/${req.file.filename}` : null;
 
         const resultado = await pool.query(
             `UPDATE recetas 
@@ -128,8 +132,9 @@ const actualizarReceta = async (req, res) => {
                  ingredientes = $3,
                  preparacion = $4,
                  tiempo_preparacion = $5,
-                 id_categoria = $6
-             WHERE id_receta = $7 AND id_usuario = $8
+                 id_categoria = $6,
+                 imagen = COALESCE($7, imagen)
+             WHERE id_receta = $8 AND id_usuario = $9
              RETURNING *`,
             [
                 titulo,
@@ -138,6 +143,7 @@ const actualizarReceta = async (req, res) => {
                 preparacion,
                 tiempo_preparacion,
                 id_categoria,
+                imagen,
                 id,
                 id_usuario
             ]

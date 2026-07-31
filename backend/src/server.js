@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 require("dotenv").config();
 
 const pool = require("./database/connection");
@@ -14,6 +15,7 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 app.get("/", (req, res) => {
     res.send("API de recetas funcionando correctamente");
@@ -39,6 +41,16 @@ app.use("/api/recetas", recetasRoutes);
 app.use("/api/usuarios", usuariosRoutes);
 app.use("/api/favoritos", favoritosRoutes);
 app.use("/api/externas", externasRoutes);
+
+app.use((error, req, res, next) => {
+    if (error) {
+        return res.status(400).json({
+            mensaje: error.message || "Error al procesar el archivo"
+        });
+    }
+
+    next();
+});
 
 const PORT = process.env.PORT || 3000;
 

@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const verificarToken = require("../middlewares/authMiddleware");
+const subirImagen = require("../middlewares/uploadMiddleware");
 
 const {
     obtenerRecetas,
@@ -16,8 +17,8 @@ router.get("/", obtenerRecetas);
 router.get("/:id", obtenerRecetaPorId);
 
 // Rutas protegidas
-router.post("/", verificarToken, crearReceta);
-router.put("/:id", verificarToken, actualizarReceta);
+router.post("/", verificarToken, subirImagen.single("imagen"), crearReceta);
+router.put("/:id", verificarToken, subirImagen.single("imagen"), actualizarReceta);
 router.delete("/:id", verificarToken, eliminarReceta);
 
 module.exports = router;

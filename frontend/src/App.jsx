@@ -15,6 +15,19 @@ function App() {
   const [recetasExternas, setRecetasExternas] = useState([]);
   const [mostrarAuth, setMostrarAuth] = useState(false);
   const [mostrarFormularioReceta, setMostrarFormularioReceta] = useState(false);
+  const [imagen, setImagen] = useState(null);
+  const [imagenActual, setImagenActual] = useState("");
+  const [recetaSeleccionada, setRecetaSeleccionada] = useState(null);
+  const [pestanaAuth, setPestanaAuth] = useState("login");
+  const [notificacion, setNotificacion] = useState(null);
+  const [procesandoAuth, setProcesandoAuth] = useState(false);
+  const [guardandoReceta, setGuardandoReceta] = useState(false);
+
+  const API_URL = "http://localhost:3000";
+
+  const mostrarNotificacion = (mensaje, tipo = "success") => {
+    setNotificacion({ mensaje, tipo, id: Date.now() });
+  };
 
   const [login, setLogin] = useState({
     correo: "",
@@ -45,26 +58,6 @@ function App() {
     }
   };
 
-  const obtenerCategoriaId = (receta) => {
-    if (receta.id_categoria) {
-      return receta.id_categoria;
-    }
-
-    if (receta.categoria === "Comida mexicana") {
-      return 1;
-    }
-
-    if (receta.categoria === "Postres") {
-      return 2;
-    }
-
-    if (receta.categoria === "Bebidas") {
-      return 3;
-    }
-
-    return 1;
-  };
-
   const manejarCambioLogin = (e) => {
     setLogin({
       ...login,
@@ -88,11 +81,15 @@ function App() {
 
   const registrarUsuario = async (e) => {
     e.preventDefault();
+    setProcesandoAuth(true);
 
     try {
       await axios.post("http://localhost:3000/api/usuarios/registro", registro);
 
-      alert("Usuario registrado correctamente. Ahora inicia sesión.");
+      mostrarNotificacion(
+        "Cuenta creada correctamente. Ya puedes iniciar sesión.",
+      );
+      setPestanaAuth("login");
 
       setRegistro({
         nombre: "",
@@ -101,12 +98,18 @@ function App() {
       });
     } catch (error) {
       console.error("Error al registrar usuario:", error);
-      alert(error.response?.data?.mensaje || "Error al registrar usuario");
+      mostrarNotificacion(
+        error.response?.data?.mensaje || "No fue posible crear la cuenta",
+        "error",
+      );
+    } finally {
+      setProcesandoAuth(false);
     }
   };
 
   const iniciarSesion = async (e) => {
     e.preventDefault();
+    setProcesandoAuth(true);
 
     try {
       const respuesta = await axios.post(
@@ -126,10 +129,15 @@ function App() {
         password: "",
       });
 
-      alert("Inicio de sesión correcto");
+      mostrarNotificacion(`Bienvenido, ${respuesta.data.usuario.nombre}`);
     } catch (error) {
       console.error("Error al iniciar sesión:", error);
-      alert(error.response?.data?.mensaje || "Error al iniciar sesión");
+      mostrarNotificacion(
+        error.response?.data?.mensaje || "No fue posible iniciar sesión",
+        "error",
+      );
+    } finally {
+      setProcesandoAuth(false);
     }
   };
 
@@ -157,20 +165,29 @@ function App() {
     e.preventDefault();
 
     if (!usuario) {
-      alert("Debes iniciar sesión para publicar una receta");
+      mostrarNotificacion("Inicia sesión para publicar una receta", "info");
+      setMostrarAuth(true);
       return;
     }
 
     const token = localStorage.getItem("token");
+    const datosReceta = new FormData();
+
+    Object.entries(formulario).forEach(([campo, valor]) => {
+      datosReceta.append(campo, valor);
+    });
+
+    if (imagen) {
+      datosReceta.append("imagen", imagen);
+    }
+
+    setGuardandoReceta(true);
 
     try {
       if (recetaEditando) {
         await axios.put(
           `http://localhost:3000/api/recetas/${recetaEditando}`,
-          {
-            ...formulario,
-            id_categoria: Number(formulario.id_categoria),
-          },
+          datosReceta,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -178,15 +195,12 @@ function App() {
           },
         );
 
-        alert("Receta actualizada correctamente");
+        mostrarNotificacion("La receta se actualizó correctamente");
         setRecetaEditando(null);
       } else {
         await axios.post(
           "http://localhost:3000/api/recetas",
-          {
-            ...formulario,
-            id_categoria: Number(formulario.id_categoria),
-          },
+          datosReceta,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -194,7 +208,7 @@ function App() {
           },
         );
 
-        alert("Receta guardada correctamente");
+        mostrarNotificacion("Tu receta se publicó correctamente");
       }
 
       setFormulario({
@@ -207,16 +221,25 @@ function App() {
       });
 
       setMostrarFormularioReceta(false);
+      setImagen(null);
+      setImagenActual("");
       obtenerRecetas();
     } catch (error) {
       console.error("Error al guardar receta:", error);
-      alert(error.response?.data?.mensaje || "Error al guardar receta");
+      mostrarNotificacion(
+        error.response?.data?.mensaje || "No fue posible guardar la receta",
+        "error",
+      );
+    } finally {
+      setGuardandoReceta(false);
     }
   };
 
   const cancelarEdicion = () => {
     setRecetaEditando(null);
     setMostrarFormularioReceta(false);
+    setImagen(null);
+    setImagenActual("");
 
     setFormulario({
       titulo: "",
@@ -231,6 +254,8 @@ function App() {
   const editarReceta = (receta) => {
     setRecetaEditando(receta.id_receta);
     setMostrarFormularioReceta(true);
+    setImagen(null);
+    setImagenActual(receta.imagen || "");
     setFormulario({
       titulo: receta.titulo || "",
       descripcion: receta.descripcion || "",
@@ -259,17 +284,21 @@ function App() {
         },
       });
 
-      alert("Receta eliminada correctamente");
+      mostrarNotificacion("La receta se eliminó correctamente");
       obtenerRecetas();
     } catch (error) {
       console.error("Error al eliminar receta:", error);
-      alert(error.response?.data?.mensaje || "Error al eliminar receta");
+      mostrarNotificacion(
+        error.response?.data?.mensaje || "No fue posible eliminar la receta",
+        "error",
+      );
     }
   };
 
   const alternarFavorito = async (id_receta) => {
     if (!usuario) {
-      alert("Debes iniciar sesión para guardar favoritos");
+      mostrarNotificacion("Inicia sesión para guardar favoritos", "info");
+      setMostrarAuth(true);
       return;
     }
 
@@ -283,7 +312,7 @@ function App() {
           },
         });
 
-        alert("Receta eliminada de favoritos");
+        mostrarNotificacion("Receta eliminada de favoritos", "info");
       } else {
         await axios.post(
           `http://localhost:3000/api/favoritos/${id_receta}`,
@@ -295,13 +324,16 @@ function App() {
           },
         );
 
-        alert("Receta agregada a favoritos");
+        mostrarNotificacion("Receta guardada en favoritos");
       }
 
       obtenerIdsFavoritos();
     } catch (error) {
       console.error("Error con favoritos:", error);
-      alert(error.response?.data?.mensaje || "Error al actualizar favoritos");
+      mostrarNotificacion(
+        error.response?.data?.mensaje || "No fue posible actualizar favoritos",
+        "error",
+      );
     }
   };
 
@@ -315,6 +347,39 @@ function App() {
       obtenerIdsFavoritos();
     }
   }, []);
+
+  useEffect(() => {
+    if (!recetaSeleccionada) {
+      return undefined;
+    }
+
+    const cerrarConEscape = (event) => {
+      if (event.key === "Escape") {
+        setRecetaSeleccionada(null);
+      }
+    };
+
+    const overflowAnterior = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", cerrarConEscape);
+
+    return () => {
+      document.body.style.overflow = overflowAnterior;
+      document.removeEventListener("keydown", cerrarConEscape);
+    };
+  }, [recetaSeleccionada]);
+
+  useEffect(() => {
+    if (!notificacion) {
+      return undefined;
+    }
+
+    const temporizador = window.setTimeout(() => {
+      setNotificacion(null);
+    }, 3800);
+
+    return () => window.clearTimeout(temporizador);
+  }, [notificacion]);
 
   const obtenerIdsFavoritos = async () => {
     const token = localStorage.getItem("token");
@@ -368,11 +433,19 @@ function App() {
     return coincideBusqueda && coincideCategoria;
   });
 
+  const recetaDestacada = recetas.find((receta) => receta.imagen);
+  const categoriasDisponibles = new Set(
+    recetas.map((receta) => receta.id_categoria).filter(Boolean),
+  ).size;
+
   const buscarRecetasExternas = async (e) => {
     e.preventDefault();
 
     if (!busquedaExterna.trim()) {
-      alert("Escribe el nombre de una receta para buscar");
+      mostrarNotificacion(
+        "Escribe el nombre de una receta para buscar",
+        "info",
+      );
       return;
     }
 
@@ -384,57 +457,146 @@ function App() {
       setRecetasExternas(respuesta.data);
 
       if (respuesta.data.length === 0) {
-        alert("No se encontraron recetas externas");
+        mostrarNotificacion("No se encontraron recetas externas", "info");
       }
     } catch (error) {
       console.error("Error al buscar recetas externas:", error);
-      alert("Error al consultar la API externa");
+      mostrarNotificacion("Error al consultar la API externa", "error");
     }
   };
 
   return (
     <div>
-      <nav className="navbar navbar-dark app-navbar">
-        <div className="container">
-          <span className="navbar-brand mb-0 h1 app-title">🍽️ Recetas Web</span>
+      <nav className="app-navbar">
+        <div className="container navbar-content">
+          <a className="brand" href="#inicio" aria-label="Ir al inicio">
+            <span className="brand-icon" aria-hidden="true">R</span>
+            <span>
+              <strong>Recetas</strong>
+              <small>Sabores para compartir</small>
+            </span>
+          </a>
 
-          {usuario ? (
-            <div className="d-flex align-items-center">
-              <span className="text-white me-3">👤 {usuario.nombre}</span>
-
+          <div className="nav-links" aria-label="Navegación principal">
+            <a href="#inicio">Inicio</a>
+            <a href="#recetas">Explorar</a>
+            <a href="#explorar-externas">Inspiración</a>
+            {usuario && (
               <button
-                className="btn btn-outline-light btn-sm"
-                onClick={cerrarSesion}
+                type="button"
+                onClick={() => {
+                  setMostrarMisRecetas(true);
+                  setMostrarFavoritos(false);
+                  document
+                    .getElementById("recetas")
+                    ?.scrollIntoView({ behavior: "smooth" });
+                }}
               >
-                Cerrar sesión
+                Mis recetas
               </button>
-            </div>
-          ) : (
-            <button
-              className="btn btn-outline-light btn-sm"
-              onClick={() => setMostrarAuth(!mostrarAuth)}
-            >
-              Iniciar sesión | Registrarse
-            </button>
-          )}
+            )}
+          </div>
+
+          <div className="navbar-actions">
+            {usuario ? (
+              <>
+                <div className="user-summary">
+                  <span className="user-avatar" aria-hidden="true">
+                    {usuario.nombre?.charAt(0).toUpperCase()}
+                  </span>
+                  <span className="user-name">{usuario.nombre}</span>
+                </div>
+                <button
+                  className="nav-publish-button"
+                  onClick={() => {
+                    setRecetaEditando(null);
+                    setMostrarFormularioReceta(true);
+                  }}
+                >
+                  <span aria-hidden="true">＋</span> Publicar
+                </button>
+                <button
+                  className="nav-logout-button"
+                  onClick={cerrarSesion}
+                  aria-label="Cerrar sesión"
+                  title="Cerrar sesión"
+                >
+                  Salir
+                </button>
+              </>
+            ) : (
+              <button
+                className="nav-login-button"
+                onClick={() => setMostrarAuth(!mostrarAuth)}
+              >
+                Iniciar sesión
+              </button>
+            )}
+          </div>
         </div>
       </nav>
 
-      <div className="container mt-4">
-        <div className="hero-section text-center">
-          <h1>Recetas de Cocina</h1>
+      <div className="container">
+        <section className="hero-section" id="inicio">
+          <div className="hero-content">
+            <span className="hero-eyebrow">Cocina, descubre y comparte</span>
+            <h1>Sabores que convierten cada comida en un momento especial</h1>
+            <p>
+              Encuentra recetas para todos los días, guarda tus favoritas y
+              comparte con la comunidad esos platillos que siempre funcionan.
+            </p>
 
-          <p>
-            Comparte, consulta y guarda recetas de cocina con tu perfil de
-            usuario.
-          </p>
+            <div className="hero-search">
+              <span aria-hidden="true">⌕</span>
+              <input
+                type="search"
+                placeholder="¿Qué te gustaría cocinar hoy?"
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                aria-label="Buscar recetas"
+              />
+              <a href="#recetas">Buscar recetas</a>
+            </div>
 
-          {usuario && (
-            <span className="badge bg-success">
-              Sesión iniciada como {usuario.nombre}
-            </span>
-          )}
-        </div>
+            <div className="hero-stats" aria-label="Estadísticas de la comunidad">
+              <div>
+                <strong>{recetas.length}</strong>
+                <span>recetas publicadas</span>
+              </div>
+              <div>
+                <strong>{categoriasDisponibles}</strong>
+                <span>categorías para explorar</span>
+              </div>
+              <div>
+                <strong>100%</strong>
+                <span>hechas para compartir</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="hero-visual" aria-hidden="true">
+            {recetaDestacada ? (
+              <img
+                src={`${API_URL}${recetaDestacada.imagen}`}
+                alt=""
+              />
+            ) : (
+              <div className="hero-placeholder">
+                <span>🍲</span>
+              </div>
+            )}
+            <div className="hero-visual-overlay"></div>
+            <div className="hero-feature-card">
+              <span>Receta destacada</span>
+              <strong>
+                {recetaDestacada?.titulo || "Tu próxima receta favorita"}
+              </strong>
+              <small>
+                {recetaDestacada?.categoria || "Descubre nuevos sabores"}
+              </small>
+            </div>
+          </div>
+        </section>
 
         {usuario && (
           <div className="card custom-card mb-4">
@@ -484,98 +646,151 @@ function App() {
         )}
 
         {!usuario && mostrarAuth && (
-          <div className="row mb-4">
-            <div className="col-md-6 mb-3">
-              <div className="card shadow-sm">
-                <div className="card-header bg-primary text-white">
-                  Registrar usuario
-                </div>
+          <div
+            className="auth-backdrop"
+            role="presentation"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) {
+                setMostrarAuth(false);
+              }
+            }}
+          >
+            <section
+              className="auth-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="auth-title"
+            >
+              <button
+                className="auth-close"
+                onClick={() => setMostrarAuth(false)}
+                aria-label="Cerrar"
+              >
+                ×
+              </button>
 
-                <div className="card-body">
-                  <form onSubmit={registrarUsuario}>
-                    <div className="mb-3">
-                      <label className="form-label">Nombre</label>
+              <div className="auth-intro">
+                <span className="brand-icon" aria-hidden="true">R</span>
+                <span className="section-eyebrow">Bienvenido a Recetas</span>
+                <h2 id="auth-title">
+                  {pestanaAuth === "login"
+                    ? "Qué gusto verte de nuevo"
+                    : "Crea tu perfil de cocina"}
+                </h2>
+                <p>
+                  {pestanaAuth === "login"
+                    ? "Entra para publicar recetas y guardar tus favoritas."
+                    : "Únete para compartir tus mejores sabores con la comunidad."}
+                </p>
+              </div>
+
+              <div className="auth-tabs" role="tablist">
+                <button
+                  className={pestanaAuth === "login" ? "active" : ""}
+                  onClick={() => setPestanaAuth("login")}
+                  role="tab"
+                  aria-selected={pestanaAuth === "login"}
+                >
+                  Iniciar sesión
+                </button>
+                <button
+                  className={pestanaAuth === "registro" ? "active" : ""}
+                  onClick={() => setPestanaAuth("registro")}
+                  role="tab"
+                  aria-selected={pestanaAuth === "registro"}
+                >
+                  Crear cuenta
+                </button>
+              </div>
+
+              {pestanaAuth === "registro" ? (
+                <form className="auth-form" onSubmit={registrarUsuario}>
+                  <div className="form-field">
+                    <label htmlFor="registro-nombre">Nombre</label>
                       <input
+                        id="registro-nombre"
                         type="text"
-                        className="form-control"
                         name="nombre"
                         value={registro.nombre}
                         onChange={manejarCambioRegistro}
+                        placeholder="Tu nombre"
+                        autoComplete="name"
                         required
                       />
-                    </div>
-
-                    <div className="mb-3">
-                      <label className="form-label">Correo</label>
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="registro-correo">Correo electrónico</label>
                       <input
+                        id="registro-correo"
                         type="email"
-                        className="form-control"
                         name="correo"
                         value={registro.correo}
                         onChange={manejarCambioRegistro}
+                        placeholder="nombre@ejemplo.com"
+                        autoComplete="email"
                         required
                       />
-                    </div>
-
-                    <div className="mb-3">
-                      <label className="form-label">Contraseña</label>
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="registro-password">Contraseña</label>
                       <input
+                        id="registro-password"
                         type="password"
-                        className="form-control"
                         name="password"
                         value={registro.password}
                         onChange={manejarCambioRegistro}
+                        placeholder="Crea una contraseña segura"
+                        autoComplete="new-password"
                         required
                       />
-                    </div>
-
-                    <button type="submit" className="btn btn-primary">
-                      Registrarme
-                    </button>
-                  </form>
-                </div>
-              </div>
-            </div>
-
-            <div className="col-md-6 mb-3">
-              <div className="card shadow-sm">
-                <div className="card-header bg-success text-white">
-                  Iniciar sesión
-                </div>
-
-                <div className="card-body">
-                  <form onSubmit={iniciarSesion}>
-                    <div className="mb-3">
-                      <label className="form-label">Correo</label>
+                    <small>Usa al menos 8 caracteres para mayor seguridad.</small>
+                  </div>
+                  <button
+                    type="submit"
+                    className="auth-submit"
+                    disabled={procesandoAuth}
+                  >
+                    {procesandoAuth ? "Creando cuenta..." : "Crear mi cuenta"}
+                  </button>
+                </form>
+              ) : (
+                <form className="auth-form" onSubmit={iniciarSesion}>
+                  <div className="form-field">
+                    <label htmlFor="login-correo">Correo electrónico</label>
                       <input
+                        id="login-correo"
                         type="email"
-                        className="form-control"
                         name="correo"
                         value={login.correo}
                         onChange={manejarCambioLogin}
+                        placeholder="nombre@ejemplo.com"
+                        autoComplete="email"
                         required
                       />
-                    </div>
-
-                    <div className="mb-3">
-                      <label className="form-label">Contraseña</label>
+                  </div>
+                  <div className="form-field">
+                    <label htmlFor="login-password">Contraseña</label>
                       <input
+                        id="login-password"
                         type="password"
-                        className="form-control"
                         name="password"
                         value={login.password}
                         onChange={manejarCambioLogin}
+                        placeholder="Tu contraseña"
+                        autoComplete="current-password"
                         required
                       />
-                    </div>
-
-                    <button type="submit" className="btn btn-success">
-                      Iniciar sesión
-                    </button>
-                  </form>
-                </div>
-              </div>
-            </div>
+                  </div>
+                  <button
+                    type="submit"
+                    className="auth-submit"
+                    disabled={procesandoAuth}
+                  >
+                    {procesandoAuth ? "Ingresando..." : "Entrar a mi cuenta"}
+                  </button>
+                </form>
+              )}
+            </section>
           </div>
         )}
 
@@ -591,60 +806,83 @@ function App() {
         )}
 
         {usuario && (mostrarFormularioReceta || recetaEditando) && (
-          <div className="card custom-card mb-4">
-            <div className="card-header bg-dark text-white">
-              {recetaEditando ? "Editar receta" : "Agregar nueva receta"}
+          <div className="recipe-editor mb-4">
+            <div className="recipe-editor-header">
+              <div>
+                <span className="section-eyebrow">
+                  {recetaEditando ? "Actualiza tu creación" : "Comparte tu sabor"}
+                </span>
+                <h2>
+                  {recetaEditando ? "Editar receta" : "Publicar una nueva receta"}
+                </h2>
+                <p>
+                  Completa la información para que otros puedan prepararla en casa.
+                </p>
+              </div>
+              <span className="recipe-editor-step">Receta</span>
             </div>
 
-            <div className="card-body">
-              <form onSubmit={guardarReceta}>
+            <div className="recipe-editor-body">
+              <form className="recipe-editor-form" onSubmit={guardarReceta}>
                 <div className="mb-3">
-                  <label className="form-label">Título</label>
+                  <label className="form-label" htmlFor="receta-titulo">Título</label>
                   <input
+                    id="receta-titulo"
                     type="text"
                     className="form-control"
                     name="titulo"
                     value={formulario.titulo}
                     onChange={manejarCambioReceta}
+                    placeholder="Ejemplo: Enchiladas de la abuela"
                     required
                   />
                 </div>
 
                 <div className="mb-3">
-                  <label className="form-label">Descripción</label>
+                  <label className="form-label" htmlFor="receta-descripcion">Descripción breve</label>
                   <textarea
+                    id="receta-descripcion"
                     className="form-control"
                     name="descripcion"
                     value={formulario.descripcion}
                     onChange={manejarCambioReceta}
+                    placeholder="Cuenta brevemente qué hace especial esta receta"
+                    rows="3"
                   ></textarea>
                 </div>
 
                 <div className="mb-3">
-                  <label className="form-label">Ingredientes</label>
+                  <label className="form-label" htmlFor="receta-ingredientes">Ingredientes</label>
                   <textarea
+                    id="receta-ingredientes"
                     className="form-control"
                     name="ingredientes"
                     value={formulario.ingredientes}
                     onChange={manejarCambioReceta}
+                    placeholder={"Escribe un ingrediente por línea\n2 tomates\n1 cebolla"}
+                    rows="7"
                     required
                   ></textarea>
                 </div>
 
                 <div className="mb-3">
-                  <label className="form-label">Preparación</label>
+                  <label className="form-label" htmlFor="receta-preparacion">Preparación</label>
                   <textarea
+                    id="receta-preparacion"
                     className="form-control"
                     name="preparacion"
                     value={formulario.preparacion}
                     onChange={manejarCambioReceta}
+                    placeholder="Describe los pasos de preparación en orden"
+                    rows="7"
                     required
                   ></textarea>
                 </div>
 
                 <div className="mb-3">
-                  <label className="form-label">Tiempo de preparación</label>
+                  <label className="form-label" htmlFor="receta-tiempo">Tiempo de preparación</label>
                   <input
+                    id="receta-tiempo"
                     type="text"
                     className="form-control"
                     name="tiempo_preparacion"
@@ -655,8 +893,9 @@ function App() {
                 </div>
 
                 <div className="mb-3">
-                  <label className="form-label">Categoría</label>
+                  <label className="form-label" htmlFor="receta-categoria">Categoría</label>
                   <select
+                    id="receta-categoria"
                     className="form-select"
                     name="id_categoria"
                     value={formulario.id_categoria}
@@ -668,23 +907,66 @@ function App() {
                   </select>
                 </div>
 
-                <button type="submit" className="btn btn-main me-2">
-                  {recetaEditando ? "Actualizar receta" : "Guardar receta"}
-                </button>
+                <div className="mb-3 recipe-image-field">
+                  <label className="form-label" htmlFor="receta-imagen">Fotografía de la receta</label>
+                  <label className="recipe-upload-zone" htmlFor="receta-imagen">
+                    <span className="recipe-upload-icon" aria-hidden="true">＋</span>
+                    <strong>
+                      {imagen ? imagen.name : "Selecciona una imagen del dispositivo"}
+                    </strong>
+                    <small>JPG, PNG, WEBP o GIF · máximo 5 MB</small>
+                  </label>
+                  <input
+                    id="receta-imagen"
+                    type="file"
+                    className="recipe-file-input"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    onChange={(e) => setImagen(e.target.files[0] || null)}
+                  />
+                  <div className="form-text">
+                    {recetaEditando && " Si no eliges otra imagen, se conservará la actual."}
+                  </div>
 
-                <button
-  type="button"
-  className="btn btn-secondary"
-  onClick={cancelarEdicion}
->
-  Cancelar
-</button>
+                  {(imagen || imagenActual) && (
+                    <img
+                      src={
+                        imagen
+                          ? URL.createObjectURL(imagen)
+                          : `${API_URL}${imagenActual}`
+                      }
+                      className="recipe-image-preview mt-3"
+                      alt="Vista previa de la receta"
+                    />
+                  )}
+                </div>
+
+                <div className="recipe-editor-actions">
+                  <button
+                    type="button"
+                    className="recipe-editor-cancel"
+                    onClick={cancelarEdicion}
+                    disabled={guardandoReceta}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="recipe-editor-submit"
+                    disabled={guardandoReceta}
+                  >
+                    {guardandoReceta
+                      ? "Guardando..."
+                      : recetaEditando
+                        ? "Actualizar receta"
+                        : "Publicar receta"}
+                  </button>
+                </div>
               </form>
             </div>
           </div>
         )}
 
-        <div className="card custom-card mb-4">
+        <div className="card custom-card mb-4" id="explorar-externas">
           <div className="card-header bg-info text-white">
             Buscar recetas externas
           </div>
@@ -712,31 +994,34 @@ function App() {
               <div className="row mt-4">
                 {recetasExternas.map((receta) => (
                   <div className="col-md-4 mb-4" key={receta.id}>
-                    <div className="card h-100 recipe-card">
-                      <img
-                        src={receta.imagen}
-                        className="card-img-top"
-                        alt={receta.nombre}
-                      />
-
-                      <div className="card-body">
-                        <h5 className="card-title">{receta.nombre}</h5>
-
-                        <p>
-                          <strong>Categoría:</strong> {receta.categoria}
-                        </p>
-
-                        <p>
-                          <strong>Origen:</strong> {receta.area}
-                        </p>
-
-                        <p>
-                          <strong>Fuente:</strong> {receta.fuente}
-                        </p>
-
-                        <p>{receta.instrucciones.substring(0, 200)}...</p>
+                    <article className="recipe-card external-recipe-card h-100">
+                      <div className="recipe-card-media">
+                        <img src={receta.imagen} alt={receta.nombre} />
+                        <span className="recipe-category">
+                          {receta.categoria}
+                        </span>
                       </div>
-                    </div>
+
+                      <div className="recipe-card-content">
+                        <div className="recipe-card-kicker">
+                          <span>Inspiración internacional</span>
+                          <span>{receta.area}</span>
+                        </div>
+                        <h3>{receta.nombre}</h3>
+                        <p className="recipe-card-description">
+                          {receta.instrucciones}
+                        </p>
+                        <div className="recipe-card-footer">
+                          <div className="recipe-author">
+                            <span className="recipe-author-avatar">T</span>
+                            <div>
+                              <small>Fuente</small>
+                              <strong>{receta.fuente}</strong>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
                   </div>
                 ))}
               </div>
@@ -744,13 +1029,22 @@ function App() {
           </div>
         </div>
 
-        <h2 className="section-title">
-          {mostrarMisRecetas
-            ? "Mis recetas"
-            : mostrarFavoritos
-              ? "Mis recetas favoritas"
-              : "Recetas registradas"}
-        </h2>
+        <div className="recipes-heading" id="recetas">
+          <div>
+            <span className="section-eyebrow">Sabores de la comunidad</span>
+            <h2 className="section-title">
+              {mostrarMisRecetas
+                ? "Mis recetas"
+                : mostrarFavoritos
+                  ? "Mis recetas favoritas"
+                  : "Recetas para inspirarte"}
+            </h2>
+          </div>
+          <span className="recipes-count">
+            {recetasMostradas.length}{" "}
+            {recetasMostradas.length === 1 ? "receta" : "recetas"}
+          </span>
+        </div>
         <div className="row mb-3">
           <div className="col-md-8 mb-2">
             <input
@@ -786,79 +1080,243 @@ function App() {
           ) : (
             recetasMostradas.map((receta) => (
               <div className="col-md-4 mb-4" key={receta.id_receta}>
-                <div className="card h-100 recipe-card">
-                  <div className="card-body">
-                    <h5 className="card-title">{receta.titulo}</h5>
-
+                <article className="recipe-card h-100">
+                  <div className="recipe-card-media">
+                    {receta.imagen ? (
+                      <img
+                        src={`${API_URL}${receta.imagen}`}
+                        alt={receta.titulo}
+                      />
+                    ) : (
+                      <div className="recipe-image-fallback" aria-hidden="true">
+                        <span>🍽️</span>
+                      </div>
+                    )}
                     <span className="recipe-category">
                       {receta.categoria || "Sin categoría"}
                     </span>
-
-                    <p>{receta.descripcion}</p>
-
-                    <p>
-                      <strong>Ingredientes:</strong>
-                      <br />
-                      {receta.ingredientes}
-                    </p>
-
-                    <p>
-                      <strong>Preparación:</strong>
-                      <br />
-                      {receta.preparacion}
-                    </p>
-
-                    <p>
-                      <strong>Tiempo:</strong> {receta.tiempo_preparacion}
-                    </p>
-
-                    <p>
-                      <strong>Usuario:</strong>{" "}
-                      {receta.usuario || "Usuario desconocido"}
-                    </p>
-
-                    {/* Botón de favoritos: aparece para cualquier usuario con sesión */}
                     {usuario && (
                       <button
-                        className={
+                        className={`recipe-favorite-button ${
                           favoritos.includes(Number(receta.id_receta))
-                            ? "btn btn-outline-danger btn-sm mt-2 me-2"
-                            : "btn btn-outline-primary btn-sm mt-2 me-2"
-                        }
+                            ? "is-favorite"
+                            : ""
+                        }`}
                         onClick={() => alternarFavorito(receta.id_receta)}
+                        aria-label={
+                          favoritos.includes(Number(receta.id_receta))
+                            ? "Quitar de favoritos"
+                            : "Guardar en favoritos"
+                        }
+                        title={
+                          favoritos.includes(Number(receta.id_receta))
+                            ? "Quitar de favoritos"
+                            : "Guardar en favoritos"
+                        }
                       >
                         {favoritos.includes(Number(receta.id_receta))
-                          ? "Quitar de favoritos"
-                          : "Guardar en favoritos"}
+                          ? "♥"
+                          : "♡"}
                       </button>
                     )}
-
-                    {usuario &&
-                      Number(usuario.id_usuario) ===
-                        Number(receta.id_usuario) && (
-                        <div className="d-flex gap-2 mt-3">
-                          <button
-                            className="btn btn-warning btn-sm"
-                            onClick={() => editarReceta(receta)}
-                          >
-                            Editar
-                          </button>
-
-                          <button
-                            className="btn btn-danger btn-sm"
-                            onClick={() => eliminarReceta(receta.id_receta)}
-                          >
-                            Eliminar
-                          </button>
-                        </div>
-                      )}
                   </div>
-                </div>
+
+                  <div className="recipe-card-content">
+                    <div className="recipe-card-kicker">
+                      <span>Receta casera</span>
+                      <span>◷ {receta.tiempo_preparacion || "Sin tiempo"}</span>
+                    </div>
+                    <h3>{receta.titulo}</h3>
+                    <p className="recipe-card-description">
+                      {receta.descripcion ||
+                        "Una receta compartida por nuestra comunidad para disfrutar en casa."}
+                    </p>
+                    <button
+                      className="recipe-view-button"
+                      onClick={() => setRecetaSeleccionada(receta)}
+                    >
+                      Ver receta completa <span aria-hidden="true">→</span>
+                    </button>
+
+                    <div className="recipe-card-footer">
+                      <div className="recipe-author">
+                        <span className="recipe-author-avatar">
+                          {(receta.usuario || "U").charAt(0).toUpperCase()}
+                        </span>
+                        <div>
+                          <small>Compartida por</small>
+                          <strong>
+                            {receta.usuario || "Usuario desconocido"}
+                          </strong>
+                        </div>
+                      </div>
+
+                      {usuario &&
+                        Number(usuario.id_usuario) ===
+                          Number(receta.id_usuario) && (
+                          <div className="recipe-owner-actions">
+                            <button
+                              className="recipe-edit-button"
+                              onClick={() => editarReceta(receta)}
+                            >
+                              Editar
+                            </button>
+
+                            <button
+                              className="recipe-delete-button"
+                              onClick={() => eliminarReceta(receta.id_receta)}
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        )}
+                    </div>
+                  </div>
+                </article>
               </div>
             ))
           )}
         </div>
       </div>
+
+      {notificacion && (
+        <div
+          className={`app-toast app-toast-${notificacion.tipo}`}
+          role="status"
+          aria-live="polite"
+        >
+          <span className="app-toast-icon" aria-hidden="true">
+            {notificacion.tipo === "error"
+              ? "!"
+              : notificacion.tipo === "info"
+                ? "i"
+                : "✓"}
+          </span>
+          <span>{notificacion.mensaje}</span>
+          <button
+            onClick={() => setNotificacion(null)}
+            aria-label="Cerrar notificación"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {recetaSeleccionada && (
+        <div
+          className="recipe-modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setRecetaSeleccionada(null);
+            }
+          }}
+        >
+          <article
+            className="recipe-detail"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="recipe-detail-title"
+          >
+            <button
+              className="recipe-detail-close"
+              onClick={() => setRecetaSeleccionada(null)}
+              aria-label="Cerrar receta"
+              autoFocus
+            >
+              ×
+            </button>
+
+            <div className="recipe-detail-hero">
+              {recetaSeleccionada.imagen ? (
+                <img
+                  src={`${API_URL}${recetaSeleccionada.imagen}`}
+                  alt={recetaSeleccionada.titulo}
+                />
+              ) : (
+                <div className="recipe-detail-fallback" aria-hidden="true">
+                  <span>🍽️</span>
+                </div>
+              )}
+              <div className="recipe-detail-hero-overlay"></div>
+              <div className="recipe-detail-heading">
+                <span>{recetaSeleccionada.categoria || "Sin categoría"}</span>
+                <h2 id="recipe-detail-title">
+                  {recetaSeleccionada.titulo}
+                </h2>
+                <div className="recipe-detail-meta">
+                  <span>
+                    ◷ {recetaSeleccionada.tiempo_preparacion || "Sin tiempo"}
+                  </span>
+                  <span>
+                    Por {recetaSeleccionada.usuario || "Usuario desconocido"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="recipe-detail-body">
+              {recetaSeleccionada.descripcion && (
+                <p className="recipe-detail-intro">
+                  {recetaSeleccionada.descripcion}
+                </p>
+              )}
+
+              <div className="recipe-detail-columns">
+                <section className="recipe-ingredients">
+                  <span className="recipe-detail-number">01</span>
+                  <h3>Ingredientes</h3>
+                  <div>{recetaSeleccionada.ingredientes}</div>
+                </section>
+
+                <section className="recipe-preparation">
+                  <span className="recipe-detail-number">02</span>
+                  <h3>Preparación</h3>
+                  <div>{recetaSeleccionada.preparacion}</div>
+                </section>
+              </div>
+
+              <div className="recipe-detail-actions">
+                {usuario && (
+                  <button
+                    className={`recipe-detail-favorite ${
+                      favoritos.includes(
+                        Number(recetaSeleccionada.id_receta),
+                      )
+                        ? "is-favorite"
+                        : ""
+                    }`}
+                    onClick={() =>
+                      alternarFavorito(recetaSeleccionada.id_receta)
+                    }
+                  >
+                    {favoritos.includes(
+                      Number(recetaSeleccionada.id_receta),
+                    )
+                      ? "♥ Guardada en favoritos"
+                      : "♡ Guardar en favoritos"}
+                  </button>
+                )}
+
+                {usuario &&
+                  Number(usuario.id_usuario) ===
+                    Number(recetaSeleccionada.id_usuario) && (
+                    <button
+                      className="recipe-detail-edit"
+                      onClick={() => {
+                        editarReceta(recetaSeleccionada);
+                        setRecetaSeleccionada(null);
+                        window.scrollTo({ top: 500, behavior: "smooth" });
+                      }}
+                    >
+                      Editar esta receta
+                    </button>
+                  )}
+              </div>
+            </div>
+          </article>
+        </div>
+      )}
     </div>
   );
 }

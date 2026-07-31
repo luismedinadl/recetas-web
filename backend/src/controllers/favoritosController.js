@@ -13,6 +13,7 @@ const obtenerFavoritos = async (req, res) => {
                 recetas.ingredientes,
                 recetas.preparacion,
                 recetas.tiempo_preparacion,
+                recetas.imagen,
                 recetas.fecha_publicacion,
                 recetas.id_usuario,
                 recetas.id_categoria,
