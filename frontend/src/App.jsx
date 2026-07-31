@@ -599,50 +599,76 @@ function App() {
         </section>
 
         {usuario && (
-          <div className="card custom-card mb-4">
-            <div className="card-header bg-secondary text-white">
-              Perfil de usuario
+          <section className="profile-dashboard">
+            <div className="profile-identity">
+              <span className="profile-avatar" aria-hidden="true">
+                {usuario.nombre?.charAt(0).toUpperCase()}
+              </span>
+              <div>
+                <span className="section-eyebrow">Tu espacio personal</span>
+                <h2>{usuario.nombre}</h2>
+                <p>{usuario.correo}</p>
+              </div>
             </div>
 
-            <div className="card-body">
-              <h5>{usuario.nombre}</h5>
-              <p>
-                <strong>Correo:</strong> {usuario.correo}
-              </p>
+            <div className="profile-stats">
+              <div>
+                <strong>{recetasDelUsuario.length}</strong>
+                <span>Recetas publicadas</span>
+              </div>
+              <div>
+                <strong>{favoritos.length}</strong>
+                <span>Favoritas guardadas</span>
+              </div>
+            </div>
 
-              <p>
-                <strong>Recetas publicadas:</strong> {recetasDelUsuario.length}
-              </p>
+            <button
+              className="profile-publish-button"
+              onClick={() => {
+                setRecetaEditando(null);
+                setMostrarFormularioReceta(true);
+              }}
+            >
+              <span aria-hidden="true">＋</span>
+              Publicar receta
+            </button>
 
-              <p>
-                <strong>Recetas favoritas:</strong> {favoritos.length}
-              </p>
-
+            <div className="profile-tabs" role="tablist" aria-label="Ver recetas">
               <button
-                className="btn btn-soft me-2"
+                className={!mostrarMisRecetas && !mostrarFavoritos ? "active" : ""}
                 onClick={() => {
-                  setMostrarMisRecetas(!mostrarMisRecetas);
+                  setMostrarMisRecetas(false);
                   setMostrarFavoritos(false);
                 }}
+                role="tab"
+                aria-selected={!mostrarMisRecetas && !mostrarFavoritos}
               >
-                {mostrarMisRecetas
-                  ? "Ver todas las recetas"
-                  : "Ver mis recetas"}
+                Explorar todas
               </button>
-
               <button
-                className="btn btn-soft me-2"
+                className={mostrarMisRecetas ? "active" : ""}
                 onClick={() => {
-                  setMostrarFavoritos(!mostrarFavoritos);
+                  setMostrarMisRecetas(true);
+                  setMostrarFavoritos(false);
+                }}
+                role="tab"
+                aria-selected={mostrarMisRecetas}
+              >
+                Mis recetas
+              </button>
+              <button
+                className={mostrarFavoritos ? "active" : ""}
+                onClick={() => {
+                  setMostrarFavoritos(true);
                   setMostrarMisRecetas(false);
                 }}
+                role="tab"
+                aria-selected={mostrarFavoritos}
               >
-                {mostrarFavoritos
-                  ? "Ver todas las recetas"
-                  : "Ver mis favoritas"}
+                Favoritas
               </button>
             </div>
-          </div>
+          </section>
         )}
 
         {!usuario && mostrarAuth && (
@@ -791,17 +817,6 @@ function App() {
                 </form>
               )}
             </section>
-          </div>
-        )}
-
-        {usuario && !mostrarFormularioReceta && !recetaEditando && (
-          <div className="text-end mb-3">
-            <button
-              className="btn btn-main"
-              onClick={() => setMostrarFormularioReceta(true)}
-            >
-              + Agregar nueva receta
-            </button>
           </div>
         )}
 
@@ -1045,36 +1060,76 @@ function App() {
             {recetasMostradas.length === 1 ? "receta" : "recetas"}
           </span>
         </div>
-        <div className="row mb-3">
-          <div className="col-md-8 mb-2">
+        <div className="recipe-filters">
+          <div className="recipe-filter-search">
+            <span aria-hidden="true">⌕</span>
             <input
-              type="text"
-              className="form-control"
-              placeholder="Buscar receta por nombre, descripción o ingredientes..."
+              type="search"
+              placeholder="Buscar por nombre, descripción o ingredientes"
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
+              aria-label="Buscar en las recetas"
             />
+            {busqueda && (
+              <button
+                onClick={() => setBusqueda("")}
+                aria-label="Limpiar búsqueda"
+              >
+                ×
+              </button>
+            )}
           </div>
 
-          <div className="col-md-4 mb-2">
-            <select
-              className="form-select"
-              value={filtroCategoria}
-              onChange={(e) => setFiltroCategoria(e.target.value)}
-            >
-              <option value="todas">Todas las categorías</option>
-              <option value="1">Comida mexicana</option>
-              <option value="2">Postres</option>
-              <option value="3">Bebidas</option>
-            </select>
+          <div className="category-filters" aria-label="Filtrar por categoría">
+            {[
+              ["todas", "Todas"],
+              ["1", "Comida mexicana"],
+              ["2", "Postres"],
+              ["3", "Bebidas"],
+            ].map(([valor, etiqueta]) => (
+              <button
+                key={valor}
+                className={filtroCategoria === valor ? "active" : ""}
+                onClick={() => setFiltroCategoria(valor)}
+                aria-pressed={filtroCategoria === valor}
+              >
+                {etiqueta}
+              </button>
+            ))}
           </div>
+
+          {(busqueda || filtroCategoria !== "todas") && (
+            <button
+              className="clear-filters-button"
+              onClick={() => {
+                setBusqueda("");
+                setFiltroCategoria("todas");
+              }}
+            >
+              Limpiar filtros
+            </button>
+          )}
         </div>
 
         <div className="row">
           {recetasMostradas.length === 0 ? (
             <div className="col-12">
-              <div className="alert alert-warning text-center">
-                No hay recetas registradas.
+              <div className="recipes-empty-state">
+                <span aria-hidden="true">⌕</span>
+                <h3>No encontramos recetas</h3>
+                <p>
+                  Prueba con otra búsqueda o cambia los filtros seleccionados.
+                </p>
+                {(busqueda || filtroCategoria !== "todas") && (
+                  <button
+                    onClick={() => {
+                      setBusqueda("");
+                      setFiltroCategoria("todas");
+                    }}
+                  >
+                    Mostrar todas las recetas
+                  </button>
+                )}
               </div>
             </div>
           ) : (
