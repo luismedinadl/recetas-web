@@ -10,12 +10,23 @@ const favoritosRoutes = require("./routes/favoritosRoutes");
 const externasRoutes = require("./routes/externasRoutes");
 
 const app = express();
+const uploadsDir = process.env.UPLOADS_DIR || path.join(__dirname, "../uploads");
+const origenesPermitidos = [
+    "http://localhost:5173",
+    process.env.FRONTEND_URL
+].filter(Boolean);
 
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin || origenesPermitidos.includes(origin)) {
+            return callback(null, true);
+        }
 
-
-app.use(cors());
+        callback(new Error("Origen no permitido por CORS"));
+    }
+}));
 app.use(express.json());
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
+app.use("/uploads", express.static(uploadsDir));
 
 app.get("/", (req, res) => {
     res.send("API de recetas funcionando correctamente");
@@ -50,6 +61,10 @@ app.use((error, req, res, next) => {
     }
 
     next();
+});
+
+app.get("/api/health", (req, res) => {
+    res.json({ estado: "ok" });
 });
 
 const PORT = process.env.PORT || 3000;

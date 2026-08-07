@@ -18,12 +18,15 @@ function App() {
   const [imagen, setImagen] = useState(null);
   const [imagenActual, setImagenActual] = useState("");
   const [recetaSeleccionada, setRecetaSeleccionada] = useState(null);
+  const [recetaExternaSeleccionada, setRecetaExternaSeleccionada] =
+    useState(null);
   const [pestanaAuth, setPestanaAuth] = useState("login");
   const [notificacion, setNotificacion] = useState(null);
   const [procesandoAuth, setProcesandoAuth] = useState(false);
   const [guardandoReceta, setGuardandoReceta] = useState(false);
+  const [buscandoExternas, setBuscandoExternas] = useState(false);
 
-  const API_URL = "http://localhost:3000";
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
   const mostrarNotificacion = (mensaje, tipo = "success") => {
     setNotificacion({ mensaje, tipo, id: Date.now() });
@@ -51,7 +54,7 @@ function App() {
 
   const obtenerRecetas = async () => {
     try {
-      const respuesta = await axios.get("http://localhost:3000/api/recetas");
+      const respuesta = await axios.get(`${API_URL}/api/recetas`);
       setRecetas(respuesta.data);
     } catch (error) {
       console.error("Error al obtener recetas:", error);
@@ -84,7 +87,7 @@ function App() {
     setProcesandoAuth(true);
 
     try {
-      await axios.post("http://localhost:3000/api/usuarios/registro", registro);
+      await axios.post(`${API_URL}/api/usuarios/registro`, registro);
 
       mostrarNotificacion(
         "Cuenta creada correctamente. Ya puedes iniciar sesión.",
@@ -113,7 +116,7 @@ function App() {
 
     try {
       const respuesta = await axios.post(
-        "http://localhost:3000/api/usuarios/login",
+        `${API_URL}/api/usuarios/login`,
         login,
       );
 
@@ -186,7 +189,7 @@ function App() {
     try {
       if (recetaEditando) {
         await axios.put(
-          `http://localhost:3000/api/recetas/${recetaEditando}`,
+          `${API_URL}/api/recetas/${recetaEditando}`,
           datosReceta,
           {
             headers: {
@@ -199,7 +202,7 @@ function App() {
         setRecetaEditando(null);
       } else {
         await axios.post(
-          "http://localhost:3000/api/recetas",
+          `${API_URL}/api/recetas`,
           datosReceta,
           {
             headers: {
@@ -251,6 +254,25 @@ function App() {
     });
   };
 
+  const desplazarAlFormulario = () => {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        document.getElementById("editor-receta")?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+    });
+  };
+
+  const abrirNuevaReceta = () => {
+    setRecetaEditando(null);
+    setMostrarFormularioReceta(true);
+    setImagen(null);
+    setImagenActual("");
+    desplazarAlFormulario();
+  };
+
   const editarReceta = (receta) => {
     setRecetaEditando(receta.id_receta);
     setMostrarFormularioReceta(true);
@@ -264,6 +286,7 @@ function App() {
       tiempo_preparacion: receta.tiempo_preparacion || "",
       id_categoria: receta.id_categoria || 1,
     });
+    desplazarAlFormulario();
   };
 
   const eliminarReceta = async (id) => {
@@ -278,7 +301,7 @@ function App() {
     const token = localStorage.getItem("token");
 
     try {
-      await axios.delete(`http://localhost:3000/api/recetas/${id}`, {
+      await axios.delete(`${API_URL}/api/recetas/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -306,7 +329,7 @@ function App() {
 
     try {
       if (favoritos.includes(Number(id_receta))) {
-        await axios.delete(`http://localhost:3000/api/favoritos/${id_receta}`, {
+        await axios.delete(`${API_URL}/api/favoritos/${id_receta}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -315,7 +338,7 @@ function App() {
         mostrarNotificacion("Receta eliminada de favoritos", "info");
       } else {
         await axios.post(
-          `http://localhost:3000/api/favoritos/${id_receta}`,
+          `${API_URL}/api/favoritos/${id_receta}`,
           {},
           {
             headers: {
@@ -349,13 +372,14 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!recetaSeleccionada) {
+    if (!recetaSeleccionada && !recetaExternaSeleccionada) {
       return undefined;
     }
 
     const cerrarConEscape = (event) => {
       if (event.key === "Escape") {
         setRecetaSeleccionada(null);
+        setRecetaExternaSeleccionada(null);
       }
     };
 
@@ -367,7 +391,7 @@ function App() {
       document.body.style.overflow = overflowAnterior;
       document.removeEventListener("keydown", cerrarConEscape);
     };
-  }, [recetaSeleccionada]);
+  }, [recetaSeleccionada, recetaExternaSeleccionada]);
 
   useEffect(() => {
     if (!notificacion) {
@@ -391,7 +415,7 @@ function App() {
 
     try {
       const respuesta = await axios.get(
-        "http://localhost:3000/api/favoritos/ids",
+        `${API_URL}/api/favoritos/ids`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -449,9 +473,12 @@ function App() {
       return;
     }
 
+    setBuscandoExternas(true);
+
     try {
       const respuesta = await axios.get(
-        `http://localhost:3000/api/externas/buscar?nombre=${busquedaExterna}`,
+        `${API_URL}/api/externas/buscar`,
+        { params: { nombre: busquedaExterna } },
       );
 
       setRecetasExternas(respuesta.data);
@@ -462,6 +489,8 @@ function App() {
     } catch (error) {
       console.error("Error al buscar recetas externas:", error);
       mostrarNotificacion("Error al consultar la API externa", "error");
+    } finally {
+      setBuscandoExternas(false);
     }
   };
 
@@ -470,10 +499,9 @@ function App() {
       <nav className="app-navbar">
         <div className="container navbar-content">
           <a className="brand" href="#inicio" aria-label="Ir al inicio">
-            <span className="brand-icon" aria-hidden="true">R</span>
             <span>
-              <strong>Recetas</strong>
-              <small>Sabores para compartir</small>
+              <strong>Recetas de cocina</strong>
+              <small></small>
             </span>
           </a>
 
@@ -508,10 +536,7 @@ function App() {
                 </div>
                 <button
                   className="nav-publish-button"
-                  onClick={() => {
-                    setRecetaEditando(null);
-                    setMostrarFormularioReceta(true);
-                  }}
+                  onClick={abrirNuevaReceta}
                 >
                   <span aria-hidden="true">＋</span> Publicar
                 </button>
@@ -539,11 +564,11 @@ function App() {
       <div className="container">
         <section className="hero-section" id="inicio">
           <div className="hero-content">
-            <span className="hero-eyebrow">Cocina, descubre y comparte</span>
-            <h1>Sabores que convierten cada comida en un momento especial</h1>
+            <span className="hero-eyebrow">descubre</span>
+            <h1>Encuentra tu proxima receta</h1>
             <p>
-              Encuentra recetas para todos los días, guarda tus favoritas y
-              comparte con la comunidad esos platillos que siempre funcionan.
+              Encuentra recetas, guarda tus favoritas y
+              comparte con la comunidad los platillos que te gustan
             </p>
 
             <div className="hero-search">
@@ -565,12 +590,9 @@ function App() {
               </div>
               <div>
                 <strong>{categoriasDisponibles}</strong>
-                <span>categorías para explorar</span>
+                <span>categorías</span>
               </div>
-              <div>
-                <strong>100%</strong>
-                <span>hechas para compartir</span>
-              </div>
+
             </div>
           </div>
 
@@ -605,7 +627,7 @@ function App() {
                 {usuario.nombre?.charAt(0).toUpperCase()}
               </span>
               <div>
-                <span className="section-eyebrow">Tu espacio personal</span>
+                <span className="section-eyebrow">Tu perfil</span>
                 <h2>{usuario.nombre}</h2>
                 <p>{usuario.correo}</p>
               </div>
@@ -624,10 +646,7 @@ function App() {
 
             <button
               className="profile-publish-button"
-              onClick={() => {
-                setRecetaEditando(null);
-                setMostrarFormularioReceta(true);
-              }}
+              onClick={abrirNuevaReceta}
             >
               <span aria-hidden="true">＋</span>
               Publicar receta
@@ -696,17 +715,16 @@ function App() {
               </button>
 
               <div className="auth-intro">
-                <span className="brand-icon" aria-hidden="true">R</span>
                 <span className="section-eyebrow">Bienvenido a Recetas</span>
                 <h2 id="auth-title">
                   {pestanaAuth === "login"
-                    ? "Qué gusto verte de nuevo"
-                    : "Crea tu perfil de cocina"}
+                    ? "Inicia Sesión"
+                    : "Crea tu perfil"}
                 </h2>
                 <p>
                   {pestanaAuth === "login"
                     ? "Entra para publicar recetas y guardar tus favoritas."
-                    : "Únete para compartir tus mejores sabores con la comunidad."}
+                    : "Únete para compartir tus recetas."}
                 </p>
               </div>
 
@@ -821,11 +839,11 @@ function App() {
         )}
 
         {usuario && (mostrarFormularioReceta || recetaEditando) && (
-          <div className="recipe-editor mb-4">
+          <div className="recipe-editor mb-4" id="editor-receta">
             <div className="recipe-editor-header">
               <div>
                 <span className="section-eyebrow">
-                  {recetaEditando ? "Actualiza tu creación" : "Comparte tu sabor"}
+                  {recetaEditando ? "Actualiza tu receta" : "Comparte tu receta"}
                 </span>
                 <h2>
                   {recetaEditando ? "Editar receta" : "Publicar una nueva receta"}
@@ -981,32 +999,47 @@ function App() {
           </div>
         )}
 
-        <div className="card custom-card mb-4" id="explorar-externas">
-          <div className="card-header bg-info text-white">
-            Buscar recetas externas
+        <section className="international-explorer" id="explorar-externas">
+          <div className="international-intro">
+            <span className="international-mark" aria-hidden="true">✦</span>
+            <span className="section-eyebrow">Recetas internacionales</span>
+            <h2>Prueba recetas de todo el mundo</h2>
+            <p>
+              Busca recetas de otros países
+              </p>
           </div>
 
-          <div className="card-body">
-            <form onSubmit={buscarRecetasExternas} className="row">
-              <div className="col-md-9 mb-2">
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Ejemplo: chicken, pasta, cake"
-                  value={busquedaExterna}
-                  onChange={(e) => setBusquedaExterna(e.target.value)}
-                />
-              </div>
+          <form
+            onSubmit={buscarRecetasExternas}
+            className="international-search"
+          >
+            <span aria-hidden="true">⌕</span>
+            <input
+              type="search"
+              placeholder="Prueba con chicken, pasta, curry o cake"
+              value={busquedaExterna}
+              onChange={(e) => setBusquedaExterna(e.target.value)}
+              aria-label="Buscar recetas internacionales"
+            />
+            <button type="submit" disabled={buscandoExternas}>
+              {buscandoExternas ? "Buscando..." : "Explorar recetas"}
+            </button>
+          </form>
 
-              <div className="col-md-3 mb-2">
-                <button type="submit" className="btn btn-info text-white w-100">
-                  Buscar
-                </button>
-              </div>
-            </form>
+          {buscandoExternas && (
+            <div className="external-loading" aria-live="polite">
+              <span></span>
+              Buscando inspiración alrededor del mundo...
+            </div>
+          )}
 
-            {recetasExternas.length > 0 && (
-              <div className="row mt-4">
+          {!buscandoExternas && recetasExternas.length > 0 && (
+            <div className="external-results">
+              <div className="external-results-heading">
+                <strong>Resultados internacionales</strong>
+                <span>{recetasExternas.length} encontradas</span>
+              </div>
+              <div className="row">
                 {recetasExternas.map((receta) => (
                   <div className="col-md-4 mb-4" key={receta.id}>
                     <article className="recipe-card external-recipe-card h-100">
@@ -1026,6 +1059,12 @@ function App() {
                         <p className="recipe-card-description">
                           {receta.instrucciones}
                         </p>
+                        <button
+                          className="recipe-view-button"
+                          onClick={() => setRecetaExternaSeleccionada(receta)}
+                        >
+                          Ver receta completa <span aria-hidden="true">→</span>
+                        </button>
                         <div className="recipe-card-footer">
                           <div className="recipe-author">
                             <span className="recipe-author-avatar">T</span>
@@ -1040,9 +1079,9 @@ function App() {
                   </div>
                 ))}
               </div>
-            )}
-          </div>
-        </div>
+            </div>
+          )}
+        </section>
 
         <div className="recipes-heading" id="recetas">
           <div>
@@ -1234,6 +1273,28 @@ function App() {
         </div>
       </div>
 
+      <footer className="app-footer">
+        <div className="container footer-content">
+          <a className="brand footer-brand" href="#inicio">
+            <span>
+              <strong>Recetas de cocina</strong>
+              <small></small>
+            </span>
+          </a>
+          <p>
+            Descubre las mejores recetas
+          </p>
+          <div className="footer-links">
+            <a href="#inicio">Inicio</a>
+            <a href="#recetas">Explorar</a>
+            <a href="#explorar-externas">Inspiración</a>
+          </div>
+          <small className="footer-copy">
+            © {new Date().getFullYear()} Recetas Web
+          </small>
+        </div>
+      </footer>
+
       {notificacion && (
         <div
           className={`app-toast app-toast-${notificacion.tipo}`}
@@ -1361,12 +1422,83 @@ function App() {
                       onClick={() => {
                         editarReceta(recetaSeleccionada);
                         setRecetaSeleccionada(null);
-                        window.scrollTo({ top: 500, behavior: "smooth" });
                       }}
                     >
                       Editar esta receta
                     </button>
                   )}
+              </div>
+            </div>
+          </article>
+        </div>
+      )}
+
+      {recetaExternaSeleccionada && (
+        <div
+          className="recipe-modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setRecetaExternaSeleccionada(null);
+            }
+          }}
+        >
+          <article
+            className="recipe-detail external-detail"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="external-detail-title"
+          >
+            <button
+              className="recipe-detail-close"
+              onClick={() => setRecetaExternaSeleccionada(null)}
+              aria-label="Cerrar receta"
+              autoFocus
+            >
+              ×
+            </button>
+
+            <div className="recipe-detail-hero">
+              <img
+                src={recetaExternaSeleccionada.imagen}
+                alt={recetaExternaSeleccionada.nombre}
+              />
+              <div className="recipe-detail-hero-overlay"></div>
+              <div className="recipe-detail-heading">
+                <span>{recetaExternaSeleccionada.categoria}</span>
+                <h2 id="external-detail-title">
+                  {recetaExternaSeleccionada.nombre}
+                </h2>
+                <div className="recipe-detail-meta">
+                  <span>Origen: {recetaExternaSeleccionada.area}</span>
+                  <span>Fuente: {recetaExternaSeleccionada.fuente}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="recipe-detail-body">
+              <div className="external-language-note">
+                Esta receta conserva el idioma proporcionado por su fuente
+                original.
+              </div>
+              <div className="recipe-detail-columns">
+                <section className="recipe-ingredients">
+                  <span className="recipe-detail-number">01</span>
+                  <h3>Ingredientes</h3>
+                  <ul className="external-ingredients">
+                    {(recetaExternaSeleccionada.ingredientes || []).map(
+                      (ingrediente) => (
+                        <li key={ingrediente}>{ingrediente}</li>
+                      ),
+                    )}
+                  </ul>
+                </section>
+
+                <section className="recipe-preparation">
+                  <span className="recipe-detail-number">02</span>
+                  <h3>Preparación</h3>
+                  <div>{recetaExternaSeleccionada.instrucciones}</div>
+                </section>
               </div>
             </div>
           </article>

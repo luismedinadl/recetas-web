@@ -1,0 +1,44 @@
+services:
+  - type: web
+    name: recetas-web-api-luismedina
+    runtime: node
+    plan: free
+    region: oregon
+    rootDir: backend
+    buildCommand: npm ci
+    startCommand: npm run migrate && npm start
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: DATABASE_URL
+        fromDatabase:
+          name: recetas-web-db-luismedina
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        value: https://recetas-web-luismedina.onrender.com
+
+  - type: web
+    name: recetas-web-luismedina
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    autoDeployTrigger: commit
+    envVars:
+      - key: VITE_API_URL
+        value: https://recetas-web-api-luismedina.onrender.com
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+databases:
+  - name: recetas-web-db-luismedina
+    plan: free
+    region: oregon
+    databaseName: recetas_web
+    user: recetas_web_user

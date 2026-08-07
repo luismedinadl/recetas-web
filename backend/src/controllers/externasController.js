@@ -19,15 +19,31 @@ const buscarRecetasExternas = async (req, res) => {
             return res.json([]);
         }
 
-        const recetas = respuesta.data.meals.map((meal) => ({
-            id: meal.idMeal,
-            nombre: meal.strMeal,
-            categoria: meal.strCategory,
-            area: meal.strArea,
-            instrucciones: meal.strInstructions,
-            imagen: meal.strMealThumb,
-            fuente: "TheMealDB"
-        }));
+        const recetas = respuesta.data.meals.map((meal) => {
+            const ingredientes = [];
+
+            for (let indice = 1; indice <= 20; indice += 1) {
+                const ingrediente = meal[`strIngredient${indice}`]?.trim();
+                const medida = meal[`strMeasure${indice}`]?.trim();
+
+                if (ingrediente) {
+                    ingredientes.push(
+                        medida ? `${medida} ${ingrediente}` : ingrediente
+                    );
+                }
+            }
+
+            return {
+                id: meal.idMeal,
+                nombre: meal.strMeal,
+                categoria: meal.strCategory,
+                area: meal.strArea,
+                instrucciones: meal.strInstructions,
+                ingredientes,
+                imagen: meal.strMealThumb,
+                fuente: "TheMealDB"
+            };
+        });
 
         res.json(recetas);
 
