@@ -1,4 +1,5 @@
 const pool = require("../database/connection");
+const { guardarImagen, eliminarImagen } = require("../services/imageService");
 
 // Obtener todas las recetas
 const obtenerRecetas = async (req, res) => {
@@ -71,30 +72,44 @@ const crearReceta = async (req, res) => {
         } = req.body;
 
         const id_usuario = req.usuario.id_usuario;
-        const imagen = req.file ? `/uploads/${req.file.filename}` : null;
-
         if (!titulo || !ingredientes || !preparacion) {
             return res.status(400).json({
                 mensaje: "El título, los ingredientes y la preparación son obligatorios"
             });
         }
 
-        const resultado = await pool.query(
-            `INSERT INTO recetas 
-            (titulo, descripcion, ingredientes, preparacion, tiempo_preparacion, id_usuario, id_categoria, imagen)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            RETURNING *`,
-            [
-                titulo,
-                descripcion,
-                ingredientes,
-                preparacion,
-                tiempo_preparacion,
-                id_usuario,
-                id_categoria,
-                imagen
-            ]
-        );
+        const archivoGuardado = await guardarImagen(req.file);
+
+        let resultado;
+
+        try {
+            resultado = await pool.query(
+                `INSERT INTO recetas
+                (titulo, descripcion, ingredientes, preparacion, tiempo_preparacion, id_usuario, id_categoria, imagen, imagen_public_id)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                RETURNING *`,
+                [
+                    titulo,
+                    descripcion,
+                    ingredientes,
+                    preparacion,
+                    tiempo_preparacion,
+                    id_usuario,
+                    id_categoria,
+                    archivoGuardado?.url || null,
+                    archivoGuardado?.publicId || null
+                ]
+            );
+        } catch (error) {
+            if (archivoGuardado) {
+                await eliminarImagen({
+                    publicId: archivoGuardado.publicId,
+                    url: archivoGuardado.url
+                }).catch(() => undefined);
+            }
+
+            throw error;
+        }
 
         res.status(201).json({
             mensaje: "Receta creada correctamente",
@@ -123,35 +138,66 @@ const actualizarReceta = async (req, res) => {
             tiempo_preparacion,
             id_categoria
         } = req.body;
-        const imagen = req.file ? `/uploads/${req.file.filename}` : null;
-
-        const resultado = await pool.query(
-            `UPDATE recetas 
-             SET titulo = $1,
-                 descripcion = $2,
-                 ingredientes = $3,
-                 preparacion = $4,
-                 tiempo_preparacion = $5,
-                 id_categoria = $6,
-                 imagen = COALESCE($7, imagen)
-             WHERE id_receta = $8 AND id_usuario = $9
-             RETURNING *`,
-            [
-                titulo,
-                descripcion,
-                ingredientes,
-                preparacion,
-                tiempo_preparacion,
-                id_categoria,
-                imagen,
-                id,
-                id_usuario
-            ]
+        const recetaActual = await pool.query(
+            `SELECT imagen, imagen_public_id
+             FROM recetas
+             WHERE id_receta = $1 AND id_usuario = $2`,
+            [id, id_usuario]
         );
 
-        if (resultado.rows.length === 0) {
+        if (recetaActual.rows.length === 0) {
             return res.status(403).json({
                 mensaje: "No tienes permiso para editar esta receta"
+            });
+        }
+
+        const archivoGuardado = await guardarImagen(req.file);
+
+        let resultado;
+
+        try {
+            resultado = await pool.query(
+                `UPDATE recetas
+                 SET titulo = $1,
+                     descripcion = $2,
+                     ingredientes = $3,
+                     preparacion = $4,
+                     tiempo_preparacion = $5,
+                     id_categoria = $6,
+                     imagen = COALESCE($7, imagen),
+                     imagen_public_id = COALESCE($8, imagen_public_id)
+                 WHERE id_receta = $9 AND id_usuario = $10
+                 RETURNING *`,
+                [
+                    titulo,
+                    descripcion,
+                    ingredientes,
+                    preparacion,
+                    tiempo_preparacion,
+                    id_categoria,
+                    archivoGuardado?.url || null,
+                    archivoGuardado?.publicId || null,
+                    id,
+                    id_usuario
+                ]
+            );
+        } catch (error) {
+            if (archivoGuardado) {
+                await eliminarImagen({
+                    publicId: archivoGuardado.publicId,
+                    url: archivoGuardado.url
+                }).catch(() => undefined);
+            }
+
+            throw error;
+        }
+
+        if (archivoGuardado && recetaActual.rows[0].imagen) {
+            await eliminarImagen({
+                publicId: recetaActual.rows[0].imagen_public_id,
+                url: recetaActual.rows[0].imagen
+            }).catch((error) => {
+                console.error("No se pudo eliminar la imagen anterior:", error.message);
             });
         }
 
@@ -182,6 +228,15 @@ const eliminarReceta = async (req, res) => {
         if (resultado.rows.length === 0) {
             return res.status(403).json({
                 mensaje: "No tienes permiso para eliminar esta receta"
+            });
+        }
+
+        if (resultado.rows[0].imagen) {
+            await eliminarImagen({
+                publicId: resultado.rows[0].imagen_public_id,
+                url: resultado.rows[0].imagen
+            }).catch((error) => {
+                console.error("No se pudo eliminar la imagen de la receta:", error.message);
             });
         }
 

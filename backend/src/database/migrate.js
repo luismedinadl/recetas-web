@@ -25,6 +25,7 @@ const migrar = async () => {
                 ingredientes TEXT NOT NULL,
                 preparacion TEXT NOT NULL,
                 imagen VARCHAR(500),
+                imagen_public_id VARCHAR(255),
                 tiempo_preparacion VARCHAR(50),
                 id_usuario INTEGER REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
                 id_categoria INTEGER REFERENCES categorias(id_categoria) ON DELETE SET NULL,
@@ -40,6 +41,9 @@ const migrar = async () => {
 
             ALTER TABLE recetas
             ADD COLUMN IF NOT EXISTS imagen VARCHAR(500);
+
+            ALTER TABLE recetas
+            ADD COLUMN IF NOT EXISTS imagen_public_id VARCHAR(255);
         `);
 
         await pool.query(`

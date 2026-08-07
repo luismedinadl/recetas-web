@@ -27,6 +27,8 @@ function App() {
   const [buscandoExternas, setBuscandoExternas] = useState(false);
 
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+  const obtenerUrlImagen = (ruta) =>
+    ruta?.startsWith("http") ? ruta : `${API_URL}${ruta}`;
 
   const mostrarNotificacion = (mensaje, tipo = "success") => {
     setNotificacion({ mensaje, tipo, id: Date.now() });
@@ -599,7 +601,7 @@ function App() {
           <div className="hero-visual" aria-hidden="true">
             {recetaDestacada ? (
               <img
-                src={`${API_URL}${recetaDestacada.imagen}`}
+                src={obtenerUrlImagen(recetaDestacada.imagen)}
                 alt=""
               />
             ) : (
@@ -965,7 +967,7 @@ function App() {
                       src={
                         imagen
                           ? URL.createObjectURL(imagen)
-                          : `${API_URL}${imagenActual}`
+                          : obtenerUrlImagen(imagenActual)
                       }
                       className="recipe-image-preview mt-3"
                       alt="Vista previa de la receta"
@@ -1178,7 +1180,7 @@ function App() {
                   <div className="recipe-card-media">
                     {receta.imagen ? (
                       <img
-                        src={`${API_URL}${receta.imagen}`}
+                        src={obtenerUrlImagen(receta.imagen)}
                         alt={receta.titulo}
                       />
                     ) : (
@@ -1346,7 +1348,7 @@ function App() {
             <div className="recipe-detail-hero">
               {recetaSeleccionada.imagen ? (
                 <img
-                  src={`${API_URL}${recetaSeleccionada.imagen}`}
+                  src={obtenerUrlImagen(recetaSeleccionada.imagen)}
                   alt={recetaSeleccionada.titulo}
                 />
               ) : (
