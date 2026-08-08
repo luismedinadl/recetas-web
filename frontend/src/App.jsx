@@ -1043,10 +1043,7 @@ function App() {
 
         <section className="international-explorer" id="explorar-externas">
           <div className="international-intro">
-            <h2>Prueba recetas de todo el mundo</h2>
-            <p>
-              Busca recetas de otros países
-              </p>
+            <h2>Busca recetas de otros países</h2>
           </div>
 
           <form
