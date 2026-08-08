@@ -1045,7 +1045,6 @@ function App() {
 
         <section className="international-explorer" id="explorar-externas">
           <div className="international-intro">
-            <span className="international-mark" aria-hidden="true">✦</span>
             <span className="section-eyebrow">Recetas internacionales</span>
             <h2>Prueba recetas de todo el mundo</h2>
             <p>

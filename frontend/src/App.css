@@ -1580,18 +1580,6 @@ p {
   max-width: 620px;
 }
 
-.international-mark {
-  display: grid;
-  width: 42px;
-  height: 42px;
-  margin-bottom: 18px;
-  place-items: center;
-  color: var(--color-primary-soft);
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 50%;
-}
-
 .international-intro .section-eyebrow {
   color: #efb7a3;
 }
