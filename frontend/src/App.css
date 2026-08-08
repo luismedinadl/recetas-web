@@ -1057,6 +1057,34 @@ p {
   outline: none;
 }
 
+.password-field {
+  position: relative;
+}
+
+.password-field input {
+  padding-right: 82px;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  padding: 4px 6px;
+  color: var(--color-primary);
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  transform: translateY(-50%);
+}
+
+.password-toggle:hover,
+.password-toggle:focus-visible {
+  background: rgba(198, 93, 59, 0.1);
+  outline: none;
+}
+
 .form-field input:focus {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 0.2rem rgba(198, 93, 59, 0.14);

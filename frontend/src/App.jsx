@@ -23,6 +23,8 @@ function App() {
   const [pestanaAuth, setPestanaAuth] = useState("login");
   const [notificacion, setNotificacion] = useState(null);
   const [procesandoAuth, setProcesandoAuth] = useState(false);
+  const [mostrarPasswordRegistro, setMostrarPasswordRegistro] = useState(false);
+  const [mostrarPasswordLogin, setMostrarPasswordLogin] = useState(false);
   const [guardandoReceta, setGuardandoReceta] = useState(false);
   const [buscandoExternas, setBuscandoExternas] = useState(false);
 
@@ -43,7 +45,6 @@ function App() {
     nombre: "",
     correo: "",
     password: "",
-    confirmarPassword: "",
   });
 
   const [formulario, setFormulario] = useState({
@@ -88,11 +89,6 @@ function App() {
   const registrarUsuario = async (e) => {
     e.preventDefault();
 
-    if (registro.password !== registro.confirmarPassword) {
-      mostrarNotificacion("Las contraseñas no coinciden", "error");
-      return;
-    }
-
     setProcesandoAuth(true);
 
     try {
@@ -112,7 +108,6 @@ function App() {
         nombre: "",
         correo: "",
         password: "",
-        confirmarPassword: "",
       });
     } catch (error) {
       console.error("Error al registrar usuario:", error);
@@ -792,9 +787,10 @@ function App() {
                   </div>
                   <div className="form-field">
                     <label htmlFor="registro-password">Contraseña</label>
+                    <div className="password-field">
                       <input
                         id="registro-password"
-                        type="password"
+                        type={mostrarPasswordRegistro ? "text" : "password"}
                         name="password"
                         value={registro.password}
                         onChange={manejarCambioRegistro}
@@ -806,26 +802,22 @@ function App() {
                         title="Debe contener entre 8 y 72 caracteres, una mayúscula, una minúscula y un número"
                         required
                       />
-                    <small>
-                      Entre 8 y 72 caracteres, con mayúscula, minúscula y número.
-                    </small>
-                  </div>
-                  <div className="form-field">
-                    <label htmlFor="registro-confirmar-password">
-                      Confirmar contraseña
-                    </label>
-                    <input
-                      id="registro-confirmar-password"
-                      type="password"
-                      name="confirmarPassword"
-                      value={registro.confirmarPassword}
-                      onChange={manejarCambioRegistro}
-                      placeholder="Escribe nuevamente tu contraseña"
-                      autoComplete="new-password"
-                      minLength={8}
-                      maxLength={72}
-                      required
-                    />
+                      <button
+                        type="button"
+                        className="password-toggle"
+                        onClick={() =>
+                          setMostrarPasswordRegistro(!mostrarPasswordRegistro)
+                        }
+                        aria-label={
+                          mostrarPasswordRegistro
+                            ? "Ocultar contraseña"
+                            : "Mostrar contraseña"
+                        }
+                      >
+                        {mostrarPasswordRegistro ? "Ocultar" : "Mostrar"}
+                      </button>
+                    </div>
+                    <small>Mínimo 8 caracteres, con mayúscula, minúscula y número.</small>
                   </div>
                   <button
                     type="submit"
@@ -852,9 +844,10 @@ function App() {
                   </div>
                   <div className="form-field">
                     <label htmlFor="login-password">Contraseña</label>
+                    <div className="password-field">
                       <input
                         id="login-password"
-                        type="password"
+                        type={mostrarPasswordLogin ? "text" : "password"}
                         name="password"
                         value={login.password}
                         onChange={manejarCambioLogin}
@@ -862,6 +855,19 @@ function App() {
                         autoComplete="current-password"
                         required
                       />
+                      <button
+                        type="button"
+                        className="password-toggle"
+                        onClick={() => setMostrarPasswordLogin(!mostrarPasswordLogin)}
+                        aria-label={
+                          mostrarPasswordLogin
+                            ? "Ocultar contraseña"
+                            : "Mostrar contraseña"
+                        }
+                      >
+                        {mostrarPasswordLogin ? "Ocultar" : "Mostrar"}
+                      </button>
+                    </div>
                   </div>
                   <button
                     type="submit"
