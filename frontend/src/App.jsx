@@ -978,6 +978,8 @@ function App() {
                   >
                     <option value="1">Comida mexicana</option>
                     <option value="2">Postres</option>
+                    <option value="4">Sopas</option>
+                    <option value="5">Ensaladas</option>
                     <option value="3">Bebidas</option>
                   </select>
                 </div>
@@ -1166,6 +1168,8 @@ function App() {
               ["todas", "Todas"],
               ["1", "Comida mexicana"],
               ["2", "Postres"],
+              ["4", "Sopas"],
+              ["5", "Ensaladas"],
               ["3", "Bebidas"],
             ].map(([valor, etiqueta]) => (
               <button

@@ -51,7 +51,9 @@ const migrar = async () => {
             VALUES
                 (1, 'Comida mexicana'),
                 (2, 'Postres'),
-                (3, 'Bebidas')
+                (3, 'Bebidas'),
+                (4, 'Sopas'),
+                (5, 'Ensaladas')
             ON CONFLICT (id_categoria) DO UPDATE
             SET nombre_categoria = EXCLUDED.nombre_categoria;
         `);
