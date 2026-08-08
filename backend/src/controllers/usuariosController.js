@@ -2,6 +2,18 @@ const pool = require("../database/connection");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
+const validarPassword = (password) => {
+    if (typeof password !== "string" || password.length < 8 || password.length > 72) {
+        return "La contraseña debe tener entre 8 y 72 caracteres";
+    }
+
+    if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password)) {
+        return "La contraseña debe incluir una mayúscula, una minúscula y un número";
+    }
+
+    return null;
+};
+
 // Obtener usuarios
 const obtenerUsuarios = async (req, res) => {
     try {
@@ -27,6 +39,11 @@ const registrarUsuario = async (req, res) => {
             return res.status(400).json({
                 mensaje: "Nombre, correo y contraseña son obligatorios"
             });
+        }
+
+        const errorPassword = validarPassword(password);
+        if (errorPassword) {
+            return res.status(400).json({ mensaje: errorPassword });
         }
 
         const usuarioExiste = await pool.query(
