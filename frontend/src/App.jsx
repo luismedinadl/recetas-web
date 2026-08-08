@@ -724,7 +724,6 @@ function App() {
               </button>
 
               <div className="auth-intro">
-                <span className="section-eyebrow">Bienvenido a Recetas</span>
                 <h2 id="auth-title">
                   {pestanaAuth === "login"
                     ? "Inicia Sesión"
@@ -1044,7 +1043,6 @@ function App() {
 
         <section className="international-explorer" id="explorar-externas">
           <div className="international-intro">
-            <span className="section-eyebrow">Recetas internacionales</span>
             <h2>Prueba recetas de todo el mundo</h2>
             <p>
               Busca recetas de otros países
