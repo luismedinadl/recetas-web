@@ -574,7 +574,6 @@ function App() {
       <div className="container">
         <section className="hero-section" id="inicio">
           <div className="hero-content">
-            <span className="hero-eyebrow">descubre</span>
             <h1>Encuentra tu proxima receta</h1>
             <p>
               Encuentra recetas, guarda tus favoritas y
