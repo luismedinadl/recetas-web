@@ -1071,7 +1071,7 @@ function App() {
           {buscandoExternas && (
             <div className="external-loading" aria-live="polite">
               <span></span>
-              Buscando inspiración alrededor del mundo...
+              Buscando...
             </div>
           )}
 
