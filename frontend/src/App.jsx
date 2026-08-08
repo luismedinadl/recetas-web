@@ -517,8 +517,8 @@ function App() {
 
           <div className="nav-links" aria-label="Navegación principal">
             <a href="#inicio">Inicio</a>
-            <a href="#recetas">Explorar</a>
-            <a href="#explorar-externas">Inspiración</a>
+            <a href="#recetas">Recetas</a>
+            <a href="#explorar-externas">Internacionales</a>
             {usuario && (
               <button
                 type="button"
