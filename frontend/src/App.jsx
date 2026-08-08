@@ -1519,10 +1519,6 @@ function App() {
             </div>
 
             <div className="recipe-detail-body">
-              <div className="external-language-note">
-                Esta receta conserva el idioma proporcionado por su fuente
-                original.
-              </div>
               <div className="recipe-detail-columns">
                 <section className="recipe-ingredients">
                   <span className="recipe-detail-number">01</span>
