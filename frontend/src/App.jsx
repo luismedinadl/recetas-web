@@ -1128,13 +1128,13 @@ function App() {
 
         <div className="recipes-heading" id="recetas">
           <div>
-            <span className="section-eyebrow">Sabores de la comunidad</span>
+            <span className="section-eyebrow">De la comunidad</span>
             <h2 className="section-title">
               {mostrarMisRecetas
                 ? "Mis recetas"
                 : mostrarFavoritos
                   ? "Mis recetas favoritas"
-                  : "Recetas para inspirarte"}
+                  : "Recetas"}
             </h2>
           </div>
           <span className="recipes-count">
