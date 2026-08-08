@@ -910,7 +910,6 @@ function App() {
                     name="titulo"
                     value={formulario.titulo}
                     onChange={manejarCambioReceta}
-                    placeholder="Ejemplo: Enchiladas de la abuela"
                     required
                   />
                 </div>
@@ -923,7 +922,6 @@ function App() {
                     name="descripcion"
                     value={formulario.descripcion}
                     onChange={manejarCambioReceta}
-                    placeholder="Cuenta brevemente qué hace especial esta receta"
                     rows="3"
                   ></textarea>
                 </div>
